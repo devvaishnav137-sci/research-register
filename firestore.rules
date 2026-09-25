@@ -1,0 +1,154 @@
+rules_version = '2';
+
+// Field Register security rules, version 3.
+//
+// The model is the paper laboratory notebook. An entry is written once,
+// is never erased and never edited, and a mistake is handled by appending
+// a dated correction with a stated reason or by voiding the entry, which
+// leaves it visible and marked.
+//
+// Version 3 adds the student profile. A student completes their own
+// profile, the guide verifies it, and after verification only the guide
+// may change it. Every change is retained in a history array rather than
+// overwriting what was there.
+//
+// EDIT ONE LINE BEFORE DEPLOYING: put your own supervisor email addresses
+// into supervisorEmails() below, in lower case, and keep the same list in
+// index.html at STEP 2.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function supervisorEmails() {
+      return ['devvaishnav137@gmail.com'];
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSupervisor() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in supervisorEmails();
+    }
+
+    function ownsExisting() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    function ownsIncoming() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Fields the app refreshes from the Google account on every sign-in.
+    // These stay writable by the owner even after verification, because
+    // they are not part of the academic record.
+    function sessionKeys() {
+      return ['uid', 'email', 'name', 'photo', 'role', 'lastSeen'];
+    }
+
+    // Fields only the guide may set.
+    function verificationKeys() {
+      return ['verified', 'verifiedBy', 'verifiedByName', 'verifiedAt'];
+    }
+
+    match /users/{uid} {
+
+      allow read: if isSupervisor() || (signedIn() && request.auth.uid == uid);
+
+      // A student creates their own row, unverified, as a student.
+      allow create: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && (isSupervisor() || request.resource.data.role == 'student')
+                    && !(request.resource.data.keys().hasAny(verificationKeys()));
+
+      allow update: if
+        (
+          // The guide may change anything on any profile, including
+          // verifying it.
+          isSupervisor()
+        )
+        ||
+        (
+          // The owner refreshing their session fields. Always permitted,
+          // because the app writes these on every sign-in.
+          signedIn() && request.auth.uid == uid
+          && changed().hasOnly(sessionKeys())
+          && (isSupervisor() || request.resource.data.role == 'student')
+        )
+        ||
+        (
+          // The owner editing their own profile, but only while it is
+          // unverified, and never the verification fields themselves.
+          signedIn() && request.auth.uid == uid
+          && resource.data.get('verified', false) == false
+          && !(changed().hasAny(verificationKeys()))
+          && (isSupervisor() || request.resource.data.role == 'student')
+        );
+
+      allow delete: if false;
+    }
+
+    match /entries/{id} {
+
+      allow read: if ownsExisting() || isSupervisor();
+
+      // Written once, by its author, with the server's own clock. The
+      // serverAt condition prevents an entry being backdated from a device
+      // whose clock has been changed.
+      allow create: if ownsIncoming()
+                    && request.resource.data.id == id
+                    && request.resource.data.serverAt == request.time
+                    && request.resource.data.seq is int
+                    && request.resource.data.seq > 0
+                    && request.resource.data.voided == false
+                    && request.resource.data.review == null
+                    && request.resource.data.corrections.size() == 0
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() < 20000;
+
+      // Two permitted updates and nothing else. The hasOnly clause is the
+      // immutability guarantee: the text, timestamps, identity snapshot,
+      // attachment list, sequence number and digest must all arrive
+      // unchanged.
+      allow update: if
+        (
+          ownsExisting() && ownsIncoming()
+          && resource.data.voided == false
+          && changed().hasOnly(['corrections', 'voided', 'voidReason'])
+          && request.resource.data.corrections.size() >= resource.data.corrections.size()
+        )
+        ||
+        (
+          isSupervisor()
+          && resource.data.review == null
+          && changed().hasOnly(['review'])
+        );
+
+      allow delete: if false;
+    }
+
+    match /media/{id} {
+      allow read: if ownsExisting() || isSupervisor();
+
+      allow create: if ownsIncoming()
+                    && request.resource.data.id == id
+                    && request.resource.data.data is string
+                    && request.resource.data.data.size() < 950000
+                    && request.resource.data.kind in ['photo', 'audio'];
+
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

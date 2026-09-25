@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field Register</title>
+<meta name="theme-color" content="#14606E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--paper:#EEF1F4;--surface:#FFF;--surface-2:#F6F8FA;--ink:#131E27;--muted:#4E606E;--faint:#5E707F;
+--rule:#D3DCE3;--rule-strong:#B6C3CD;--accent:#14606E;--accent-soft:#DCEDF0;--rec:#A72A21;--lock:#5B4B8A;
+--ok:#1B6B47;--ok-soft:#DCEFE4;--warn:#8A5A0B;--warn-soft:#F6ECD6;--focus:#14606E;--radius:3px;--gutter:84px;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0E151D;--surface:#151F29;--surface-2:#1B2733;
+--ink:#E2E9EE;--muted:#A4B4C0;--faint:#9CAEBB;--rule:#26343F;--rule-strong:#354856;--accent:#56C2D4;
+--accent-soft:#12303A;--rec:#E07267;--lock:#A697D8;--ok:#5FC195;--ok-soft:#12291F;--warn:#D8A55A;--warn-soft:#2A2113;--focus:#56C2D4;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0E151D;--surface:#151F29;--surface-2:#1B2733;--ink:#E2E9EE;--muted:#A4B4C0;
+--faint:#9CAEBB;--rule:#26343F;--rule-strong:#354856;--accent:#56C2D4;--accent-soft:#12303A;--rec:#E07267;
+--lock:#A697D8;--ok:#5FC195;--ok-soft:#12291F;--warn:#D8A55A;--warn-soft:#2A2113;--focus:#56C2D4;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%}
+body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:"Archivo",Arial,sans-serif;
+font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+.mono{font-family:"Space Mono",Consolas,monospace;font-variant-numeric:tabular-nums}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.wrap{max-width:900px;margin:0 auto;padding:0 18px 90px}
+.hidden{display:none!important}
+.gate{max-width:440px;margin:0 auto;padding:12vh 20px 40px}
+.gate h1{font-size:30px;letter-spacing:-.035em;margin:0 0 6px}
+.gate h1 span{color:var(--accent)}
+.gate p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.warn{border:1px solid var(--rec);color:var(--rec);padding:12px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:18px}
+.gsi{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#fff;border:1px solid var(--accent);
+border-radius:var(--radius);padding:11px 20px;font-weight:600;cursor:pointer}
+.fine{font-size:11.5px;color:var(--faint);margin-top:22px;line-height:1.6}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:var(--paper);border-bottom:1px solid var(--rule)}
+.top-inner{max-width:900px;margin:0 auto;padding:12px 18px 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.wordmark{font-weight:700;letter-spacing:-.035em;font-size:19px;margin:0}
+.wordmark span{color:var(--accent)}
+nav.tabs{display:flex;gap:4px;margin-left:8px}
+nav.tabs button{background:none;border:none;border-bottom:2px solid transparent;padding:5px 9px;font-size:13.5px;color:var(--muted);cursor:pointer}
+nav.tabs button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.who{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.icon-btn{background:transparent;border:1px solid var(--rule-strong);border-radius:var(--radius);padding:4px 9px;
+font-size:12px;cursor:pointer;color:var(--muted)}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent)}
+.netbar{background:var(--rec);color:#fff;font-size:12px;text-align:center;padding:3px}
+
+/* identity header */
+.idcard{display:flex;gap:18px;align-items:flex-start;background:var(--surface);border:1px solid var(--rule);
+border-left:4px solid var(--accent);border-radius:var(--radius);padding:16px 18px;margin-top:18px;flex-wrap:wrap}
+.idphoto{width:84px;height:104px;object-fit:cover;border:1px solid var(--rule-strong);border-radius:2px;background:var(--surface-2);flex:0 0 auto}
+.idphoto.ph{display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--faint);text-align:center;padding:6px}
+.idmain{flex:1 1 300px;min-width:0}
+.idmain h2{margin:0 0 1px;font-size:22px;font-weight:700;letter-spacing:-.025em;line-height:1.15}
+.idmain .enr{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 10px;letter-spacing:-.005em}
+.idgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px 20px}
+.idgrid div{min-width:0}
+.idgrid b{display:block;font-size:11px;color:var(--faint);font-weight:500}
+.idgrid span{font-size:13px;overflow-wrap:anywhere}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{font-size:11px;padding:2px 9px;border-radius:11px;border:1px solid}
+.pill.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.pill.no{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.pill.bad{color:var(--rec);border-color:var(--rec)}
+.pill.n{color:var(--muted);border-color:var(--rule-strong)}
+
+/* composer */
+.composer{background:var(--surface);border:1px solid var(--rule);border-top:3px solid var(--accent);
+border-radius:0 0 var(--radius) var(--radius);margin-top:18px}
+.composer-head{padding:11px 16px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.composer-head h2{margin:0;font-size:13px;font-weight:600}
+.kindsel{display:flex;gap:4px}
+.kindsel button{border:1px solid var(--rule-strong);background:var(--surface);border-radius:var(--radius);
+padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.kindsel button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.clock{font-size:11.5px;color:var(--faint)}
+.composer textarea{width:100%;border:none;background:transparent;resize:vertical;min-height:84px;padding:10px 16px;font-size:15.5px}
+.composer textarea:focus{outline:none}
+.composer textarea::placeholder{color:var(--faint)}
+.meta-row{display:flex;gap:10px;flex-wrap:wrap;padding:0 16px 10px}
+.field{flex:1 1 165px;display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11.5px;color:var(--faint)}
+.field input,.field select{border:none;border-bottom:1px solid var(--rule);background:transparent;padding:4px 0;font-size:13.5px}
+.field input:focus,.field select:focus{outline:none;border-bottom-color:var(--accent)}
+.calib{border-top:1px solid var(--rule);background:var(--surface-2);padding:12px 16px}
+.calib h3{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--muted)}
+.pairs{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.pairs th{font-size:11px;color:var(--faint);font-weight:500;text-align:left;padding-bottom:4px}
+.pairs td{padding:2px 4px 2px 0}
+.pairs input{width:100%;border:1px solid var(--rule);background:var(--surface);border-radius:2px;padding:5px 6px;font-size:13px}
+.pairs .del{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;padding:0 4px}
+.fitbox{margin-top:10px;font-size:12.5px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:10px 12px}
+.fitbox .eq{font-size:14px;font-weight:600}
+.fitbox .flag{color:var(--warn);margin-top:5px}
+.figrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+.figbox{flex:1 1 290px;min-width:250px;background:var(--surface);border:1px solid var(--rule);
+border-radius:var(--radius);padding:8px}
+.figbox svg{display:block;width:100%;height:auto}
+.figbar{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:11.5px;color:var(--faint)}
+.figbar span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.minib{border:1px solid var(--rule-strong);background:var(--surface);color:var(--muted);border-radius:2px;
+padding:2px 7px;font-size:11px;cursor:pointer}
+.minib:hover{border-color:var(--accent);color:var(--accent)}
+.repctl{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.repctl .minib{padding:2px 9px;font-size:13px;line-height:1.2}
+.repctl b{font-weight:600;color:var(--ink);min-width:14px;text-align:center}
+.autorep{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule-strong);
+background:var(--surface);border-radius:var(--radius);padding:6px 11px;font-size:13px;cursor:pointer}
+.attach-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 16px;border-top:1px solid var(--rule);background:var(--surface-2)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule-strong);background:var(--surface);
+border-radius:var(--radius);padding:6px 11px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chip.rec{background:var(--rec);border-color:var(--rec);color:#fff}
+.spacer{flex:1}
+.save{background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:var(--radius);
+padding:7px 20px;font-size:13.5px;font-weight:600;cursor:pointer}
+.save[disabled]{opacity:.4;cursor:not-allowed}
+.staged{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 12px}
+.staged:empty{padding:0}
+.stage-item{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--surface-2);
+border-radius:var(--radius);padding:5px 8px;font-size:12px}
+.stage-item img{width:34px;height:34px;object-fit:cover;border-radius:2px}
+.stage-item .x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:14px}
+.stage-item .exif{color:var(--warn)}
+.rec-bar{padding:8px 16px;color:var(--rec);font-size:13px;display:none;align-items:center;gap:10px}
+.rec-bar.on{display:flex}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--rec);animation:blink 1.1s steps(2,end) infinite}
+@keyframes blink{50%{opacity:.25}}
+.stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;padding:12px 16px;background:var(--surface);
+border:1px solid var(--rule);border-radius:var(--radius)}
+.stat b{display:block;font-size:19px;font-weight:600}
+.stat span{font-size:11.5px;color:var(--faint)}
+.chainbar{margin-top:10px;padding:9px 14px;border-radius:var(--radius);font-size:12.5px;border:1px solid var(--rule)}
+.chainbar.ok{border-color:var(--ok);color:var(--ok)}
+.chainbar.bad{border-color:var(--rec);color:var(--rec)}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:20px 0 4px}
+.filters input[type="search"]{flex:1 1 200px;border:1px solid var(--rule-strong);background:var(--surface);
+border-radius:var(--radius);padding:7px 11px;font-size:13.5px}
+.filters select{border:1px solid var(--rule-strong);background:var(--surface);border-radius:var(--radius);padding:7px 9px;font-size:13px}
+.count{font-size:12px;color:var(--faint);margin-left:auto}
+.daygroup{margin-top:24px}
+.dayrule{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--rule-strong);padding-bottom:5px}
+.dayrule h3{margin:0;font-size:15px;font-weight:600}
+.dayrule .n{font-size:11.5px;color:var(--faint);margin-left:auto}
+.entry{display:grid;grid-template-columns:var(--gutter) 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--rule);cursor:pointer}
+.entry:hover{background:var(--surface)}
+.entry.void{opacity:.55}
+.gutter{text-align:right;color:var(--muted);font-size:12px;padding-top:2px}
+.gutter time{display:block;font-size:13.5px;color:var(--ink)}
+.gutter .seq{display:block;font-size:10.5px;color:var(--faint)}
+.gutter .geo{display:block;color:var(--faint);font-size:10.5px;margin-top:3px;word-break:break-all}
+.tagm{display:inline-block;margin-top:5px;font-size:10px;border-radius:2px;padding:0 4px;border:1px solid currentColor}
+.tagm.rev{color:var(--ok)}.tagm.vd{color:var(--rec)}.tagm.cor{color:var(--warn)}.tagm.cal{color:var(--lock)}
+.body p{margin:0 0 6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.body p.empty{color:var(--faint);font-style:italic}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
+.thumbs img{width:62px;height:62px;object-fit:cover;border:1px solid var(--rule);border-radius:2px}
+.thumbs .badge{min-width:62px;height:62px;border:1px solid var(--rule);border-radius:2px;display:flex;align-items:center;
+justify-content:center;font-size:11px;color:var(--muted);background:var(--surface-2);padding:4px;text-align:center}
+.tagline-row{font-size:11.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.tagline-row .proj{color:var(--accent)}
+.empty-state{border:1px dashed var(--rule-strong);border-radius:var(--radius);padding:32px 22px;text-align:center;
+color:var(--muted);margin-top:24px}
+.empty-state strong{display:block;color:var(--ink);font-size:16px;margin-bottom:5px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:16px 18px;margin-top:18px}
+.panel h3{margin:0 0 3px;font-size:16px;font-weight:600}
+.panel .sub{font-size:12px;color:var(--faint);margin:0 0 14px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 18px}
+.pgrid label{display:block;font-size:11.5px;color:var(--faint);margin-bottom:3px}
+.pgrid input,.pgrid select{width:100%;border:1px solid var(--rule);background:var(--surface-2);border-radius:2px;
+padding:7px 8px;font-size:13.5px}
+.pgrid input:focus,.pgrid select:focus{outline:none;border-color:var(--accent)}
+.pgrid input[readonly]{opacity:.65}
+.histrow{font-size:11.5px;color:var(--muted);border-left:2px solid var(--rule-strong);padding-left:9px;margin-top:6px}
+.roster{width:100%;border-collapse:collapse;margin-top:16px;font-size:13.5px;background:var(--surface);border:1px solid var(--rule)}
+.roster th,.roster td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule)}
+.roster th{font-size:11.5px;color:var(--faint);font-weight:500}
+.roster tr.sel td{background:var(--accent-soft)}
+.roster tbody tr{cursor:pointer}
+.overlay{position:fixed;inset:0;background:rgba(6,12,18,.55);z-index:60;display:none;align-items:flex-start;
+justify-content:center;overflow-y:auto;padding:calc(env(safe-area-inset-top,0px) + 24px) 14px 40px}
+.overlay.on{display:flex}
+.sheet{background:var(--surface);border:1px solid var(--rule-strong);border-radius:var(--radius);width:100%;max-width:660px}
+.sheet-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;border-bottom:1px solid var(--rule)}
+.sheet-head h3{margin:0;font-size:15px;font-weight:600}
+.sheet-head .close{margin-left:auto;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)}
+.sheet-body{padding:16px 18px}
+.sheet-body h4{margin:18px 0 6px;font-size:12px;font-weight:600;color:var(--muted)}
+.record{width:100%;border-collapse:collapse;font-size:12.5px}
+.record th,.record td{text-align:left;padding:5px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.record th{width:132px;font-weight:500;color:var(--muted)}
+.record td{overflow-wrap:anywhere}
+.dtab{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.dtab th,.dtab td{border:1px solid var(--rule);padding:4px 7px;text-align:right}
+.dtab th{background:var(--surface-2);font-weight:500;color:var(--muted);font-size:11.5px}
+.dtab td:first-child,.dtab th:first-child{text-align:left}
+.media-full{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.media-full img{max-width:100%;border:1px solid var(--rule);border-radius:2px}
+.media-full audio{width:100%}
+.media-cap{font-size:12px;color:var(--faint);margin-top:3px}
+.addendum{margin-top:8px;border-left:2px solid var(--warn);padding-left:10px;font-size:13.5px}
+.addendum .when{display:block;font-size:11px;color:var(--faint)}
+.sheet-foot{display:flex;gap:8px;flex-wrap:wrap;padding:14px 18px;border-top:1px solid var(--rule);background:var(--surface-2)}
+.danger{border-color:var(--rec);color:var(--rec)}
+textarea.add{width:100%;border:1px solid var(--rule);border-radius:var(--radius);padding:8px;min-height:54px;
+background:var(--surface);resize:vertical;margin-top:6px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;z-index:80;background:var(--ink);color:var(--paper);
+padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+.note{font-size:12px;color:var(--faint);margin-top:16px;line-height:1.55}
+@media (max-width:620px){:root{--gutter:0px}
+.entry{grid-template-columns:1fr;gap:6px}
+.gutter{text-align:left;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.gutter .geo,.gutter .seq{margin-top:0}
+.wrap{padding:0 14px 84px}
+.idcard{gap:14px}.idphoto{width:64px;height:80px}
+.idmain h2{font-size:19px}
+.roster th:nth-child(3),.roster td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <h1>Field <span>Register</span></h1>
+  <p>A timestamped, tamper-evident research log for supervised project work. Sign in with the Google account your supervisor has on record.</p>
+  <div id="setupWarn" class="warn hidden"></div>
+  <button class="gsi" id="btnSignIn" type="button">Sign in with Google</button>
+  <p class="fine">Entries are visible only to you and your supervisor. Once saved, an entry cannot be edited or deleted.
+  Mistakes are handled by adding a dated correction, in the same way a paper notebook is struck through rather than erased.</p>
+</div>
+
+<div id="app" class="hidden">
+  <div id="netbar" class="netbar hidden">Offline. Entries are held on this device and will upload when the network returns.</div>
+  <header class="top">
+    <div class="top-inner">
+      <h1 class="wordmark">Field <span>Register</span></h1>
+      <nav class="tabs">
+        <button id="tabLog" class="on" type="button">My log</button>
+        <button id="tabProfile" type="button">Profile</button>
+        <button id="tabStudents" class="hidden" type="button">Students</button>
+      </nav>
+      <div class="who">
+        <span id="meName"></span>
+        <button class="icon-btn" id="btnPdf" type="button">Archive PDF</button>
+        <button class="icon-btn" id="btnTheme" type="button">Theme</button>
+        <button class="icon-btn" id="btnOut" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="viewLog">
+      <div id="idHeader"></div>
+      <div id="profileNag"></div>
+
+      <section class="composer">
+        <div class="composer-head">
+          <h2>New entry</h2>
+          <div class="kindsel">
+            <button id="kObs" class="on" type="button">Observation</button>
+            <button id="kCal" type="button">Calibration curve</button>
+            <button id="kDis" type="button">Dissolution</button>
+          </div>
+          <span class="clock mono" id="clock"></span>
+        </div>
+        <textarea id="txt" placeholder="What did you do and observe? Conditions, quantities, instrument settings, deviations."></textarea>
+        <div class="meta-row">
+          <div class="field"><label for="proj">Experiment or sub-study</label>
+            <input id="proj" list="projlist" placeholder="e.g. Solubility screening"><datalist id="projlist"></datalist></div>
+          <div class="field"><label for="tags">Tags, comma separated</label><input id="tags" placeholder="e.g. dissolution, batch-07"></div>
+          <div class="field"><label for="place">Place label</label>
+            <input id="place" list="placelist" placeholder="e.g. Formulation lab, SNLPCP"><datalist id="placelist"></datalist></div>
+        </div>
+
+        <div class="calib hidden" id="calibBox">
+          <h3>Calibration data</h3>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="cAnalyte">Analyte</label><input id="cAnalyte" placeholder="e.g. Cilostazol"></div>
+            <div class="field"><label for="cMethod">Method and detection</label><input id="cMethod" placeholder="e.g. UV, 257 nm"></div>
+            <div class="field"><label for="cMedium">Medium</label><input id="cMedium" placeholder="e.g. pH 6.8 phosphate buffer"></div>
+          </div>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="cXu">Concentration unit</label><input id="cXu" value="&micro;g/mL"></div>
+            <div class="field"><label for="cYu">Response unit</label><input id="cYu" placeholder="absorbance or peak area"></div>
+            <div class="field"><label for="cW">Weighting</label>
+              <select id="cW"><option value="none">None (ordinary least squares)</option>
+                <option value="1/x">1/x</option><option value="1/x2">1/x squared</option></select></div>
+            <div class="field"><label for="cOrigin">Force through origin</label>
+              <select id="cOrigin"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          </div>
+          <div class="repctl"><span>Replicate readings per level</span>
+            <button class="minib" id="cRepMinus" type="button" aria-label="Fewer replicates">&minus;</button>
+            <b id="cRepN">1</b>
+            <button class="minib" id="cRepPlus" type="button" aria-label="More replicates">+</button></div>
+          <table class="pairs"><thead><tr id="cHead"></tr></thead>
+            <tbody id="pairBody"></tbody></table>
+          <button class="chip" id="btnAddRow" type="button" style="margin-top:8px">Add level</button>
+          <div class="fitbox" id="fitBox">Enter at least three levels.</div>
+        </div>
+
+        <div class="calib hidden" id="dissoBox">
+          <h3>Dissolution study</h3>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="dProduct">Dosage form under study</label><input id="dProduct" placeholder="e.g. Cilostazol CCA agglomerates"></div>
+            <div class="field"><label for="dDose">Label claim per unit (mg)</label><input id="dDose" inputmode="decimal" placeholder="100"></div>
+            <div class="field"><label for="dUnits">Units tested (n)</label><input id="dUnits" inputmode="numeric" value="3"></div>
+          </div>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="dMedium">Medium</label><input id="dMedium" placeholder="pH 6.8 phosphate buffer"></div>
+            <div class="field"><label for="dPH">pH</label><input id="dPH" inputmode="decimal" placeholder="6.8"></div>
+            <div class="field"><label for="dTemp">Temperature (&deg;C)</label><input id="dTemp" inputmode="decimal" value="37"></div>
+            <div class="field"><label for="dApp">Apparatus</label><select id="dApp"><option>USP II (paddle)</option><option>USP I (basket)</option><option>USP IV (flow through)</option></select></div>
+            <div class="field"><label for="dRPM">Speed (rpm)</label><input id="dRPM" inputmode="numeric" value="50"></div>
+          </div>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="dVol">Bath volume (mL)</label><input id="dVol" inputmode="decimal" value="900"></div>
+            <div class="field"><label for="dWd">Volume withdrawn (mL)</label><input id="dWd" inputmode="decimal" value="5"></div>
+            <div class="field"><label for="dRep">Replaced with fresh medium</label><select id="dRep"><option value="yes">Yes</option><option value="no">No</option></select></div>
+            <div class="field"><label for="dDF">Dilution factor</label><input id="dDF" inputmode="decimal" value="1"></div>
+            <div class="field"><label for="dWave">Detection</label><input id="dWave" placeholder="UV, 257 nm"></div>
+          </div>
+          <div class="meta-row" style="padding:0 0 8px">
+            <div class="field"><label for="dCal">Calibration curve</label><select id="dCal"></select></div>
+            <div class="field"><label for="dSlope">Slope (absorbance per &micro;g/mL)</label><input id="dSlope" inputmode="decimal"></div>
+            <div class="field"><label for="dInt">Intercept</label><input id="dInt" inputmode="decimal" value="0"></div>
+            <div class="field"><label for="dRef">Reference profile for f1 and f2</label><select id="dRef"></select></div>
+          </div>
+          <div class="repctl"><span>Vessels in this batch</span>
+            <button class="minib" id="dVesMinus" type="button" aria-label="Fewer vessels">&minus;</button>
+            <b id="dVesN">3</b>
+            <button class="minib" id="dVesPlus" type="button" aria-label="More vessels">+</button>
+            <span style="margin-left:8px">Each vessel is carried through its own cumulative correction, then averaged.</span></div>
+          <table class="pairs"><thead><tr id="dHead"></tr></thead>
+            <tbody id="dBody"></tbody></table>
+          <button class="chip" id="btnAddD" type="button" style="margin-top:8px">Add time point</button>
+          <div class="fitbox" id="dFit">Enter the calibration slope and at least three time points.</div>
+        </div>
+
+        <div class="rec-bar" id="recBar"><span class="pulse"></span><span class="mono" id="recTime">00:00</span>
+          <span>Recording, 3 minute limit</span>
+          <button class="chip rec" id="btnStopRec" type="button">Stop and attach</button></div>
+        <div class="staged" id="staged"></div>
+        <div class="attach-row">
+          <button class="chip" id="btnMic" type="button">Voice note</button>
+          <button class="chip" id="btnPhoto" type="button">Photo</button>
+          <button class="chip on" id="btnGeo" type="button">Location on</button>
+          <label class="autorep hidden" id="autoRepWrap"><input type="checkbox" id="autoReport" checked>PDF report on save</label>
+          <span class="spacer"></span>
+          <button class="save" id="btnSave" type="button">Save entry</button>
+        </div>
+      </section>
+
+      <div class="stats" id="stats"></div>
+      <div class="chainbar" id="chainBar"></div>
+
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search text, tags, experiment, place">
+        <select id="fProj"><option value="">All experiments</option></select>
+        <select id="fRange"><option value="0">All time</option><option value="1">Today</option>
+          <option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="365">Last year</option></select>
+        <span class="count" id="count"></span>
+      </div>
+      <div id="timeline"></div>
+      <p class="note">Video is not uploaded. Record it on your phone, keep the file, and name it in the entry text so it can be matched later.
+      A photograph proves an image was submitted at a given time, not that the reading was taken then. Prefer the instrument's own exported report wherever the software can produce one.</p>
+    </section>
+
+    <section id="viewProfile" class="hidden"><div id="profileHost"></div></section>
+
+    <section id="viewStudents" class="hidden">
+      <p class="note" style="margin-top:18px">Select a student to read their register, verify their profile, and countersign entries.</p>
+      <table class="roster"><thead><tr><th>Student</th><th>Enrollment</th><th>Email</th><th style="text-align:right">Entries</th></tr></thead>
+        <tbody id="rosterBody"></tbody></table>
+      <div id="studentPanel"></div>
+    </section>
+  </main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h3 id="sheetTitle">Entry</h3><button class="close" id="btnClose" type="button" aria-label="Close">&times;</button></div>
+    <div class="sheet-body" id="sheetBody"></div>
+    <div class="sheet-foot" id="sheetFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="photoIn" accept="image/*" multiple hidden>
+<input type="file" id="audioIn" accept="audio/*" hidden>
+<input type="file" id="portraitIn" accept="image/*" hidden>
+
+<script type="module">
+/* ==================================================================
+   STEP 1. Paste your Firebase web app configuration here.
+   ================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBhe7AShSwzt7hQK987QTBWUVBNk4aYr3s",
+  authDomain: "snlpcp-research-register.firebaseapp.com",
+  projectId: "snlpcp-research-register",
+  storageBucket: "snlpcp-research-register.firebasestorage.app",
+  messagingSenderId: "493698340402",
+  appId: "1:493698340402:web:22ad5d0595f51ca71e8e2b"
+};
+/* STEP 2. Supervisor emails, lower case. Same list must go in firestore.rules. */
+const SUPERVISOR_EMAILS = ["devvaishnav137@gmail.com"];
+/* STEP 3. Your institution, printed on the archive cover page. */
+const INSTITUTE = {
+  name: "Shree Naranjibhai Lalbhai Patel College of Pharmacy",
+  affiliation: "Gujarat Technological University",
+  department: "Department of Pharmaceutics"
+};
+/* STEP 4. The ownership line printed in the footer of every report. */
+const REPORT = { owner: "Prof. Devendra J. Vaishnav" };
+/* ------------------------------------------------------------------ */
+
+const APP_VERSION = "5.0.0";
+const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
+const MAX_PHOTO_BYTES = 260000, MAX_AUDIO_MS = 180000, MAX_MEDIA_DOC_BYTES = 900000;
+const ID_FIELDS = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle","department"];
+const REQUIRED = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle"];
+const LABELS = { fullName:"Full name", enrollmentNo:"Enrollment number", program:"Program",
+  semester:"Semester", academicYear:"Academic year", guideName:"Guide", projectTitle:"Project title",
+  department:"Department", mobile:"Mobile (optional)" };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const bytes = n => n==null?"":n<1024?n+" B":n<1048576?(n/1024).toFixed(0)+" KB":(n/1048576).toFixed(1)+" MB";
+const fmtTime = ms => { const d=new Date(ms); return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds()); };
+const fmtDay = ms => new Date(ms).toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+const fmtShort = ms => new Date(ms).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const dayKey = ms => { const d=new Date(ms); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+const fmtDur = ms => { const s=Math.round(ms/1000); return pad(Math.floor(s/60))+":"+pad(s%60); };
+const uid36 = () => Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+const sig = (v,d) => (v==null||!isFinite(v)) ? "n/a" : Number(v).toPrecision(d||5).replace(/\.?0+$/,"");
+const num = v => { const n=parseFloat(String(v).replace(",",".")); return isFinite(n)?n:NaN; };
+let tT; function toast(m){ const t=$("toast"); t.textContent=m; t.classList.add("on"); clearTimeout(tT); tT=setTimeout(()=>t.classList.remove("on"),2800); }
+
+try{ const s=localStorage.getItem("fr-theme"); if(s) document.documentElement.setAttribute("data-theme",s);}catch(e){}
+$("btnTheme").addEventListener("click",()=>{ const c=document.documentElement.getAttribute("data-theme");
+  const dark=c?c==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  const n=dark?"light":"dark"; document.documentElement.setAttribute("data-theme",n);
+  try{localStorage.setItem("fr-theme",n);}catch(e){} });
+setInterval(()=>{ const d=Date.now(); const el=$("clock"); if(el) el.textContent=fmtDay(d)+"  "+fmtTime(d); },1000);
+function net(){ $("netbar").classList.toggle("hidden",navigator.onLine); }
+addEventListener("online",net); addEventListener("offline",net); net();
+
+if(FIREBASE_CONFIG.apiKey.indexOf("PASTE")===0){
+  $("setupWarn").classList.remove("hidden");
+  $("setupWarn").textContent="This copy is not configured. Open index.html and complete STEP 1, STEP 2 and STEP 3.";
+  $("btnSignIn").disabled=true;
+}
+
+const [{ initializeApp },
+ { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut },
+ { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, setDoc, getDoc, getDocs,
+   updateDoc, query, where, onSnapshot, serverTimestamp, limit }] = await Promise.all([
+  import(SDK+"firebase-app.js"), import(SDK+"firebase-auth.js"), import(SDK+"firebase-firestore.js")]);
+
+const app = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db = initializeFirestore(app,{ localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+
+let me=null, isSup=false, myProfile=null, entries=[], unsub=null, unsubProf=null, staged=[], kind="obs";
+let geoOn=true, lastFix=null, recorder=null, chunks=[], recStart=0, recTimer=null, recStop=null;
+let pairs=[{x:"",y:""},{x:"",y:""},{x:"",y:""}];
+let portraitPending=null;
+
+/* ---------------- auth ---------------- */
+const provider=new GoogleAuthProvider();
+provider.setCustomParameters({prompt:"select_account"});
+$("btnSignIn").addEventListener("click", async ()=>{
+  try{ await signInWithPopup(auth,provider); }
+  catch(e){ if(String(e.code).indexOf("popup")>-1) await signInWithRedirect(auth,provider); else toast("Sign in failed: "+e.code); }
+});
+getRedirectResult(auth).catch(()=>{});
+$("btnOut").addEventListener("click",()=>signOut(auth));
+
+onAuthStateChanged(auth, async user=>{
+  if(!user){ me=null; isSup=false; myProfile=null; entries=[];
+    if(unsub){unsub();unsub=null;} if(unsubProf){unsubProf();unsubProf=null;}
+    $("gate").classList.remove("hidden"); $("app").classList.add("hidden"); return; }
+  me=user; isSup=SUPERVISOR_EMAILS.indexOf((user.email||"").toLowerCase())>-1;
+  $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("meName").textContent=user.displayName||user.email||"";
+  $("tabStudents").classList.toggle("hidden",!isSup);
+  try{ await setDoc(doc(db,"users",user.uid),{ uid:user.uid, email:(user.email||"").toLowerCase(),
+    name:user.displayName||"", photo:user.photoURL||"", role:isSup?"supervisor":"student", lastSeen:serverTimestamp() },{merge:true}); }
+  catch(e){ console.warn("profile write blocked",e); }
+  watchProfile(); watchMine(); if(isSup) watchRoster(); if(geoOn) warmFix();
+});
+
+function watchProfile(){
+  if(unsubProf) unsubProf();
+  unsubProf=onSnapshot(doc(db,"users",me.uid), snap=>{
+    myProfile = snap.exists()? snap.data() : null;
+    renderIdHeader(); renderProfileTab(); renderNag();
+    if(myProfile && myProfile.projectTitle && !$("proj").value) $("proj").placeholder=myProfile.projectTitle;
+  }, err=>console.warn(err));
+}
+function watchMine(){
+  if(unsub) unsub();
+  unsub=onSnapshot(query(collection(db,"entries"),where("ownerUid","==",me.uid),limit(2000)),
+    snap=>{ entries=snap.docs.map(d=>Object.assign({_pending:d.metadata.hasPendingWrites},d.data()));
+      renderStats(); verifyChain(entries,$("chainBar")); render(); },
+    err=>{ console.error(err); toast("Could not read your entries: "+err.code); });
+}
+
+/* ---------------- profile ---------------- */
+const profileComplete = p => !!p && REQUIRED.every(f=>String(p[f]||"").trim().length>0);
+
+function renderIdHeader(){
+  const host=$("idHeader"); if(!host) return;
+  const p=myProfile||{};
+  host.innerHTML = idCardHTML(p, isSup);
+}
+function idCardHTML(p, supervisorView){
+  const photo = p.portrait ? "<img class=\"idphoto\" alt=\"\" src=\""+p.portrait+"\">"
+    : "<div class=\"idphoto ph\">no photograph</div>";
+  const cells = ["enrollmentNo","program","semester","academicYear","guideName","department"]
+    .filter(f=>p[f]).map(f=>"<div><b>"+esc(LABELS[f])+"</b><span>"+esc(p[f])+"</span></div>").join("");
+  const pills = [];
+  pills.push(p.verified ? "<span class=\"pill ok\">profile verified</span>"
+    : "<span class=\"pill no\">profile not yet verified</span>");
+  if(p.email) pills.push("<span class=\"pill n\">"+esc(p.email)+"</span>");
+  if(supervisorView) pills.push("<span class=\"pill n\">supervisor account</span>");
+  return "<div class=\"idcard\">"+photo+
+    "<div class=\"idmain\"><h2>"+esc(p.fullName||p.name||"Name not set")+"</h2>"+
+    "<p class=\"enr\">"+esc(p.projectTitle||"Project title not set")+"</p>"+
+    "<div class=\"idgrid\">"+cells+"</div>"+
+    "<div class=\"pills\">"+pills.join("")+"</div></div></div>";
+}
+function renderNag(){
+  const host=$("profileNag"); if(!host) return;
+  if(isSup || profileComplete(myProfile)){ host.innerHTML=""; return; }
+  host.innerHTML="<div class=\"warn\" style=\"margin-top:14px\">Complete your profile before recording entries. "+
+    "Each entry stores a copy of these details as they stand when it is written, so the archive shows the true context of every observation.</div>";
+}
+
+function renderProfileTab(){
+  const host=$("profileHost");
+  host.innerHTML="";
+  const p=myProfile||{};
+  const editable = isSup || !p.verified;
+  host.appendChild(profileForm(p, editable, false, async (patch, hist)=>{
+    await updateDoc(doc(db,"users",me.uid), Object.assign({}, patch, { history: hist }));
+    toast("Profile saved");
+  }));
+}
+
+function profileForm(p, editable, supervisorControls, onSave){
+  const box=document.createElement("section"); box.className="panel";
+  const fields = ID_FIELDS.concat(["mobile"]);
+  box.innerHTML="<h3>"+(supervisorControls?"Student profile":"Your profile")+"</h3>"+
+    "<p class=\"sub\">"+(editable
+      ? "These details are printed on the archive cover page and a copy is frozen into every entry you record."
+      : "Your profile has been verified and is now locked. Ask your guide to make any further change.")+"</p>"+
+    "<div class=\"pgrid\">"+
+      fields.map(f=>"<div><label for=\"pf_"+f+"\">"+esc(LABELS[f])+"</label>"+
+        "<input id=\"pf_"+f+"\" value=\""+esc(p[f]||"")+"\""+(editable?"":" readonly")+
+        (f==="program"?" list=\"dlProgram\"":f==="semester"?" list=\"dlSem\"":f==="academicYear"?" list=\"dlYear\"":"")+"></div>").join("")+
+    "</div>"+
+    "<datalist id=\"dlProgram\"><option>M.Pharm</option><option>B.Pharm</option><option>Ph.D</option></datalist>"+
+    "<datalist id=\"dlSem\"><option>Semester I</option><option>Semester II</option><option>Semester III</option><option>Semester IV</option></datalist>"+
+    "<datalist id=\"dlYear\"><option>2025-2026</option><option>2026-2027</option><option>2027-2028</option></datalist>"+
+    "<div style=\"display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px\">"+
+      (p.portrait?"<img class=\"idphoto\" alt=\"\" src=\""+p.portrait+"\">":"<div class=\"idphoto ph\">no photograph</div>")+
+      "<div style=\"flex:1 1 220px\">"+
+        (editable?"<button class=\"chip\" id=\"pfPhoto\" type=\"button\">Choose photograph</button>":"")+
+        "<p class=\"note\" style=\"margin-top:6px\">Optional. It appears on the archive cover page and nowhere else. "+
+        "A mobile number is optional too and is never printed.</p>"+
+      "</div>"+
+    "</div>"+
+    "<div id=\"pfActions\" style=\"display:flex;gap:8px;flex-wrap:wrap;margin-top:14px\"></div>"+
+    "<div id=\"pfHist\"></div>";
+
+  if(editable){
+    const btn=document.createElement("button"); btn.className="save"; btn.type="button"; btn.textContent="Save profile";
+    btn.addEventListener("click", async ()=>{
+      const patch={}, changes=[];
+      fields.forEach(f=>{
+        const v=box.querySelector("#pf_"+f).value.trim();
+        if(v!==String(p[f]||"")){ patch[f]=v; changes.push({field:f,from:String(p[f]||""),to:v}); }
+      });
+      if(portraitPending){ patch.portrait=portraitPending; changes.push({field:"portrait",from:p.portrait?"set":"none",to:"set"}); }
+      if(!changes.length){ toast("Nothing has changed."); return; }
+      const hist=(p.history||[]).concat([{at:new Date().toISOString(),by:me.uid,
+        byName:me.displayName||me.email,changes}]).slice(-40);
+      btn.disabled=true; btn.textContent="Saving";
+      try{ await onSave(patch,hist); portraitPending=null; }
+      catch(err){ toast("Could not save: "+(err.code||"error")); }
+      finally{ btn.disabled=false; btn.textContent="Save profile"; }
+    });
+    box.querySelector("#pfActions").appendChild(btn);
+    const ph=box.querySelector("#pfPhoto");
+    if(ph) ph.addEventListener("click",()=>{ $("portraitIn").onchange=async ev=>{
+        const f=ev.target.files&&ev.target.files[0]; ev.target.value=""; if(!f) return;
+        try{ portraitPending=await compress(f,420,70000);
+          box.querySelector(".idphoto").outerHTML="<img class=\"idphoto\" alt=\"\" src=\""+portraitPending+"\">";
+          toast("Photograph ready. Press Save profile."); }
+        catch(e){ toast("Could not read that image."); }
+      }; $("portraitIn").click(); });
+  }
+  if((p.history||[]).length){
+    box.querySelector("#pfHist").innerHTML="<h4 style=\"margin:18px 0 4px;font-size:12px;color:var(--muted)\">Change history</h4>"+
+      p.history.slice().reverse().map(h=>"<div class=\"histrow\"><span class=\"mono\">"+esc(h.at)+"</span> by "+esc(h.byName||h.by)+": "+
+        h.changes.map(c=>esc(LABELS[c.field]||c.field)+" from \u201c"+esc(c.from||"empty")+"\u201d to \u201c"+esc(c.to)+"\u201d").join("; ")+"</div>").join("");
+  }
+  return box;
+}
+function identitySnapshot(){
+  const p=myProfile||{}, o={};
+  ID_FIELDS.forEach(f=>{ o[f]=String(p[f]||""); });
+  o.institute=INSTITUTE.name;
+  return o;
+}
+
+/* ---------------- geolocation ---------------- */
+$("btnGeo").addEventListener("click",function(){ geoOn=!geoOn; this.classList.toggle("on",geoOn);
+  this.textContent=geoOn?"Location on":"Location off"; if(geoOn) warmFix(); });
+function warmFix(){ if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p=>{lastFix={c:p.coords,at:Date.now()};},()=>{},{enableHighAccuracy:true,timeout:8000,maximumAge:120000}); }
+function getFix(){
+  if(!geoOn||!navigator.geolocation) return Promise.resolve(null);
+  if(lastFix&&Date.now()-lastFix.at<90000) return Promise.resolve({lat:lastFix.c.latitude,lon:lastFix.c.longitude,
+    accuracy:lastFix.c.accuracy,fixedAt:new Date(lastFix.at).toISOString()});
+  return new Promise(res=>{ let done=false; const fin=v=>{if(!done){done=true;res(v);}};
+    setTimeout(()=>fin(null),9000);
+    navigator.geolocation.getCurrentPosition(p=>{ lastFix={c:p.coords,at:Date.now()};
+      fin({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,fixedAt:new Date().toISOString()});},
+      ()=>fin(null),{enableHighAccuracy:true,timeout:8000,maximumAge:60000}); });
+}
+
+/* ---------------- EXIF ---------------- */
+function exifDate(file){
+  return new Promise(res=>{
+    const r=new FileReader(); r.onerror=()=>res(null);
+    r.onload=()=>{ try{
+      const v=new DataView(r.result);
+      if(v.getUint16(0)!==0xFFD8) return res(null);
+      let off=2;
+      while(off<v.byteLength-4){
+        if(v.getUint8(off)!==0xFF) break;
+        const marker=v.getUint8(off+1), size=v.getUint16(off+2);
+        if(marker===0xE1){
+          const start=off+4;
+          if(v.getUint32(start)!==0x45786966) break;
+          const tiff=start+6, little=v.getUint16(tiff)===0x4949;
+          return res(scanIFD(v,tiff,tiff+v.getUint32(tiff+4,little),little));
+        }
+        off+=2+size;
+      }
+      res(null);
+    }catch(e){ res(null); } };
+    r.readAsArrayBuffer(file.slice(0,131072));
+  });
+}
+function scanIFD(v,tiff,dir,little){
+  try{
+    const n=v.getUint16(dir,little); let sub=null;
+    for(let i=0;i<n;i++){
+      const e=dir+2+i*12, tag=v.getUint16(e,little);
+      if(tag===0x9003||tag===0x0132){
+        const cnt=v.getUint32(e+4,little);
+        let p=e+8; if(cnt>4) p=tiff+v.getUint32(e+8,little);
+        let s=""; for(let k=0;k<cnt-1;k++) s+=String.fromCharCode(v.getUint8(p+k));
+        const m=s.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+        if(m) return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]).getTime();
+      }
+      if(tag===0x8769) sub=tiff+v.getUint32(e+8,little);
+    }
+    if(sub) return scanIFD(v,tiff,sub,little);
+  }catch(e){}
+  return null;
+}
+
+/* ---------------- media ---------------- */
+const readDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b);});
+const loadImage=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});
+async function compress(file,maxEdge,target){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await loadImage(url);
+    const s=Math.min(1,maxEdge/Math.max(img.width,img.height));
+    const w=Math.max(1,Math.round(img.width*s)), h=Math.max(1,Math.round(img.height*s));
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);
+    let q=0.82,out=cv.toDataURL("image/jpeg",q);
+    while(out.length*0.75>target&&q>0.3){ q-=0.12; out=cv.toDataURL("image/jpeg",q); }
+    return out;
+  } finally{ URL.revokeObjectURL(url); }
+}
+function renderStaged(){
+  const box=$("staged"); box.innerHTML="";
+  staged.forEach(m=>{
+    const d=document.createElement("div"); d.className="stage-item";
+    let gap="";
+    if(m.exifAt){ const hrs=(Date.now()-m.exifAt)/3600000;
+      if(hrs>24) gap="<span class=\"exif\">taken "+Math.round(hrs/24)+" d earlier</span>"; }
+    d.innerHTML=(m.kind==="photo"?"<img alt=\"\" src=\""+m.dataUrl+"\">":"")+
+      "<span>"+esc(m.kind)+" &middot; "+bytes(m.size)+(m.durationMs?" &middot; "+fmtDur(m.durationMs):"")+"</span>"+gap+
+      "<button class=\"x\" type=\"button\" aria-label=\"Remove\">&times;</button>";
+    d.querySelector(".x").addEventListener("click",()=>{ staged=staged.filter(x=>x.id!==m.id); renderStaged(); });
+    box.appendChild(d);
+  });
+}
+$("btnPhoto").addEventListener("click",()=>$("photoIn").click());
+$("photoIn").addEventListener("change", async e=>{
+  const files=Array.from(e.target.files||[]); e.target.value="";
+  for(const f of files){
+    if(staged.filter(m=>m.kind==="photo").length>=4){ toast("Four photographs per entry is the limit."); break; }
+    try{
+      const exifAt=await exifDate(f);
+      const full=await compress(f,1600,MAX_PHOTO_BYTES);
+      const thumb=await compress(f,240,16000);
+      staged.push({id:uid36(),kind:"photo",mime:"image/jpeg",name:f.name||"photo.jpg",
+        size:Math.round(full.length*0.75),dataUrl:full,thumb,exifAt:exifAt||null});
+    }catch(err){ toast("Could not read that image."); }
+  }
+  renderStaged();
+});
+$("btnMic").addEventListener("click", async ()=>{
+  if(recorder&&recorder.state==="recording") return;
+  if(staged.some(m=>m.kind==="audio")){ toast("One voice note per entry."); return; }
+  if(!navigator.mediaDevices||!window.MediaRecorder){ $("audioIn").click(); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const types=["audio/webm;codecs=opus","audio/webm","audio/mp4"];
+    const t=types.find(x=>window.MediaRecorder.isTypeSupported&&window.MediaRecorder.isTypeSupported(x));
+    recorder=new MediaRecorder(stream,t?{mimeType:t,audioBitsPerSecond:24000}:{audioBitsPerSecond:24000});
+    chunks=[];
+    recorder.ondataavailable=ev=>{ if(ev.data&&ev.data.size) chunks.push(ev.data); };
+    recorder.onstop=async ()=>{
+      const dur=Date.now()-recStart, mime=recorder.mimeType||t||"audio/webm";
+      const blob=new Blob(chunks,{type:mime});
+      stream.getTracks().forEach(x=>x.stop());
+      clearInterval(recTimer); clearTimeout(recStop);
+      $("recBar").classList.remove("on"); $("btnMic").classList.remove("rec"); $("btnMic").textContent="Voice note";
+      recorder=null;
+      if(!blob.size) return;
+      const dataUrl=await readDataURL(blob);
+      if(dataUrl.length>MAX_MEDIA_DOC_BYTES){ toast("That note is too long to upload."); return; }
+      staged.push({id:uid36(),kind:"audio",mime,name:"voice-note",size:blob.size,durationMs:dur,dataUrl});
+      renderStaged();
+    };
+    recStart=Date.now(); recorder.start();
+    $("recBar").classList.add("on"); $("btnMic").classList.add("rec"); $("btnMic").textContent="Recording";
+    recTimer=setInterval(()=>{ $("recTime").textContent=fmtDur(Date.now()-recStart); },250);
+    recStop=setTimeout(()=>{ if(recorder&&recorder.state!=="inactive") recorder.stop(); },MAX_AUDIO_MS);
+  }catch(e){ toast("Microphone unavailable. Opening your recorder instead."); $("audioIn").click(); }
+});
+$("btnStopRec").addEventListener("click",()=>{ if(recorder&&recorder.state!=="inactive") recorder.stop(); });
+$("audioIn").addEventListener("change", async e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value=""; if(!f) return;
+  const dataUrl=await readDataURL(f);
+  if(dataUrl.length>MAX_MEDIA_DOC_BYTES){ toast("That audio file is too large."); return; }
+  staged.push({id:uid36(),kind:"audio",mime:f.type||"audio/mpeg",name:f.name,size:f.size,durationMs:null,dataUrl});
+  renderStaged();
+});
+
+/* ================= analysis, plotting and figure export =================
+   Replicates are handled at the level they belong to. For a calibration
+   curve the regression is fitted to every individual reading, because that
+   is what gives an honest residual standard deviation and therefore honest
+   detection limits, while the plotted points are level means with standard
+   deviation bars. For a dissolution study each vessel is carried through
+   its own cumulative-release calculation before the vessels are averaged,
+   because averaging absorbances first and correcting afterwards is not the
+   same arithmetic and understates the spread. */
+
+/* ---------- colors: screen follows the theme, export is always print ---------- */
+const SCREEN_C = { accent:"var(--accent)", rec:"var(--rec)", rule:"var(--rule)",
+  faint:"var(--faint)", ink:"var(--ink)", bg:"none", font:"inherit" };
+const PRINT_C = { accent:"#14606E", rec:"#A72A21", rule:"#C8D3DB",
+  faint:"#5E707F", ink:"#131E27", bg:"#FFFFFF", font:"Helvetica, Arial, sans-serif" };
+
+let FIG_SEQ = 0;
+const FIG_REG = {};
+
+function figure(build, caption){
+  const key = "fig" + (++FIG_SEQ);
+  FIG_REG[key] = { build: build, caption: caption || "figure" };
+  return "<div class=\"figbox\">" + build(SCREEN_C, false) +
+    "<div class=\"figbar\"><span>" + esc(caption || "") + "</span>" +
+    "<button class=\"minib\" data-fig=\"" + key + "\" data-fmt=\"jpg\" type=\"button\">JPG</button>" +
+    "<button class=\"minib\" data-fig=\"" + key + "\" data-fmt=\"png\" type=\"button\">PNG</button>" +
+    "<button class=\"minib\" data-fig=\"" + key + "\" data-fmt=\"pdf\" type=\"button\">PDF</button></div></div>";
+}
+function svgWrap(w, h, inner, C){
+  return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + w + "\" height=\"" + h +
+    "\" viewBox=\"0 0 " + w + " " + h + "\" style=\"max-width:100%;height:auto;font-family:" + C.font + "\">" +
+    (C.bg !== "none" ? "<rect x=\"0\" y=\"0\" width=\"" + w + "\" height=\"" + h + "\" fill=\"" + C.bg + "\"/>" : "") +
+    inner + "</svg>";
+}
+function svgToCanvas(svg, scale){
+  return new Promise(function(res, rej){
+    const blob = new Blob([svg], { type:"image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob), img = new Image();
+    img.onload = function(){
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width*scale); cv.height = Math.round(img.height*scale);
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0,0,cv.width,cv.height);
+      ctx.drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url); res(cv);
+    };
+    img.onerror = function(e){ URL.revokeObjectURL(url); rej(e); };
+    img.src = url;
+  });
+}
+function saveBlobURL(url, filename){
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function exportFigure(key, fmt){
+  const f = FIG_REG[key];
+  if(!f){ toast("That figure is no longer on screen. Reopen the entry and try again."); return; }
+  const svg = f.build(PRINT_C, true);
+  const name = f.caption.replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase() || "figure";
+  try{
+    const cv = await svgToCanvas(svg, 3);
+    if(fmt === "pdf"){
+      if(!window.jspdf){ toast("The PDF library did not load. Check the network and reload."); return; }
+      const { jsPDF } = window.jspdf;
+      const wpt = cv.width*0.24, hpt = cv.height*0.24;
+      const d = new jsPDF({ unit:"pt", format:[wpt+56, hpt+72], orientation: wpt>hpt?"landscape":"portrait" });
+      d.addImage(cv.toDataURL("image/jpeg",0.95), "JPEG", 28, 28, wpt, hpt);
+      d.setFontSize(8); d.setTextColor(120,136,148);
+      d.text(f.caption, 28, hpt+48);
+      d.text(reportNotice(), 28, hpt+60);
+      d.save(name + ".pdf");
+    } else {
+      const mime = fmt === "png" ? "image/png" : "image/jpeg";
+      const url = cv.toDataURL(mime, 0.95);
+      saveBlobURL(url, name + "." + (fmt === "png" ? "png" : "jpg"));
+    }
+    toast("Figure exported. Check your downloads folder.");
+  }catch(err){ console.error(err); toast("Could not export that figure on this browser."); }
+}
+document.addEventListener("click", function(ev){
+  const b = ev.target.closest && ev.target.closest("[data-fig]");
+  if(b) exportFigure(b.getAttribute("data-fig"), b.getAttribute("data-fmt"));
+});
+
+/* ---------- small numeric helpers ---------- */
+function meanSD(vals){
+  const v = vals.filter(function(x){ return isFinite(x); });
+  if(!v.length) return { n:0, mean:NaN, sd:NaN, cv:NaN };
+  const m = v.reduce(function(a,b){ return a+b; },0)/v.length;
+  const sd = v.length>1 ? Math.sqrt(v.reduce(function(a,b){ return a+(b-m)*(b-m); },0)/(v.length-1)) : NaN;
+  return { n:v.length, mean:m, sd:sd, cv:(isFinite(sd)&&m!==0)?Math.abs(sd/m*100):NaN };
+}
+function linfit(xs, ys){
+  const n = xs.length;
+  if(n < 2) return { ok:false, n:n };
+  const mx = xs.reduce(function(a,b){return a+b;},0)/n, my = ys.reduce(function(a,b){return a+b;},0)/n;
+  let sxx=0, sxy=0, syy=0;
+  for(let i=0;i<n;i++){ sxx+=(xs[i]-mx)*(xs[i]-mx); sxy+=(xs[i]-mx)*(ys[i]-my); syy+=(ys[i]-my)*(ys[i]-my); }
+  if(sxx === 0) return { ok:false, n:n };
+  const slope = sxy/sxx;
+  return { ok:true, n:n, slope:slope, intercept:my-slope*mx, r2: syy>0 ? (sxy*sxy)/(sxx*syy) : NaN };
+}
+function niceMax(v){
+  if(!isFinite(v) || v<=0) return 1;
+  const e = Math.pow(10, Math.floor(Math.log10(v)));
+  const m = v/e;
+  return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*e;
+}
+
+/* ---------- calibration ---------- */
+/* Accepts both shapes: the original {x, y} and the replicate {x, y:[...]}. */
+function normLevels(pairs){
+  const out = [];
+  (pairs||[]).forEach(function(p){
+    const x = num(p.x);
+    if(!isFinite(x)) return;
+    const ys = (Array.isArray(p.y) ? p.y : [p.y]).map(num).filter(function(v){ return isFinite(v); });
+    if(!ys.length) return;
+    const s = meanSD(ys);
+    out.push({ x:x, ys:ys, mean:s.mean, sd:s.sd, cv:s.cv, n:s.n });
+  });
+  out.sort(function(a,b){ return a.x-b.x; });
+  return out;
+}
+function regress(pairs, weighting, origin){
+  const levels = normLevels(pairs);
+  const obs = [];
+  levels.forEach(function(L){ L.ys.forEach(function(y){ obs.push({ x:L.x, y:y }); }); });
+  const out = { levels:levels, points:obs, n:levels.length, nObs:obs.length,
+    weighting:weighting, origin:origin, ok:false, notes:[] };
+  if(levels.length < 3){ out.notes.push("At least three concentration levels are required."); return out; }
+  const wf = function(x){ return weighting==="1/x" ? (x!==0?1/Math.abs(x):0)
+    : weighting==="1/x2" ? (x!==0?1/(x*x):0) : 1; };
+  const w = obs.map(function(o){ return wf(o.x); });
+  if(weighting!=="none" && levels.some(function(L){ return L.x===0; }))
+    out.notes.push("A zero-concentration level cannot be weighted and has been given zero weight.");
+  const Sw = w.reduce(function(a,b){return a+b;},0);
+  if(Sw <= 0){ out.notes.push("All weights are zero."); return out; }
+  let slope, intercept;
+  if(origin === "yes"){
+    let a=0,b=0;
+    obs.forEach(function(o,i){ a += w[i]*o.x*o.y; b += w[i]*o.x*o.x; });
+    slope = a/b; intercept = 0;
+    out.notes.push("The line is forced through the origin. This is only appropriate when a zero response at zero concentration is established, and it biases the low end when it is not.");
+  } else {
+    let Swx=0,Swy=0,Swxx=0,Swxy=0;
+    obs.forEach(function(o,i){ Swx+=w[i]*o.x; Swy+=w[i]*o.y; Swxx+=w[i]*o.x*o.x; Swxy+=w[i]*o.x*o.y; });
+    const den = Sw*Swxx - Swx*Swx;
+    if(den === 0){ out.notes.push("The concentration values are identical; no line can be fitted."); return out; }
+    slope = (Sw*Swxy - Swx*Swy)/den;
+    intercept = (Swy - slope*Swx)/Sw;
+  }
+  const ybarW = obs.reduce(function(a,o,i){ return a+w[i]*o.y; },0)/Sw;
+  let sse=0, sst=0;
+  obs.forEach(function(o,i){
+    const r = o.y-(intercept+slope*o.x);
+    sse += w[i]*r*r; sst += w[i]*(o.y-ybarW)*(o.y-ybarW);
+  });
+  const dof = obs.length - (origin==="yes"?1:2);
+  const syx = dof>0 ? Math.sqrt(sse/dof) : NaN;
+  out.ok = true; out.slope = slope; out.intercept = intercept;
+  out.r2 = sst>0 ? 1-sse/sst : NaN; out.syx = syx;
+  out.lod = (isFinite(syx)&&slope) ? 3.3*syx/Math.abs(slope) : NaN;
+  out.loq = (isFinite(syx)&&slope) ? 10*syx/Math.abs(slope) : NaN;
+  out.rows = levels.map(function(L){
+    const fit = intercept + slope*L.x;
+    const back = slope!==0 ? (L.mean-intercept)/slope : NaN;
+    return { x:L.x, y:L.mean, sd:L.sd, cv:L.cv, nRep:L.n, fit:fit, res:L.mean-fit,
+      back:back, rec:L.x!==0?back/L.x*100:NaN, relErr:L.x!==0?(back-L.x)/L.x*100:NaN };
+  });
+  out.obsResiduals = obs.map(function(o){ return { x:o.x, res:o.y-(intercept+slope*o.x) }; });
+  const maxRel = Math.max.apply(null, out.rows.filter(function(r){ return isFinite(r.relErr); })
+    .map(function(r){ return Math.abs(r.relErr); }).concat([0]));
+  out.maxRelErr = maxRel;
+  const reps = levels.map(function(L){ return L.n; });
+  out.repMin = Math.min.apply(null, reps); out.repMax = Math.max.apply(null, reps);
+  if(out.repMax > 1) out.notes.push("The line is fitted to all " + obs.length +
+    " individual readings, not to the " + levels.length + " level means, because that is what gives a correct residual standard deviation and therefore correct detection and quantitation limits. The plotted points are level means with one standard deviation shown as error bars.");
+  if(maxRel > 15) out.notes.push("The largest back-calculated relative error is " + maxRel.toFixed(1) +
+    " percent. ICH acceptance for a calibration level is commonly within 15 percent, and 20 percent at the lowest level.");
+  const signs = out.rows.map(function(r){ return r.res>=0?1:-1; });
+  let runs = 1; for(let i=1;i<signs.length;i++) if(signs[i]!==signs[i-1]) runs++;
+  if(out.rows.length>=5 && runs<=2) out.notes.push("The residuals do not change sign freely, which suggests curvature rather than a linear response. Inspect the residual plot before accepting this fit.");
+  if(isFinite(out.r2) && out.r2>0.995 && maxRel>10) out.notes.push("A high r squared is accompanied by a large back-calculated error. The correlation coefficient alone is not evidence of linearity.");
+  return out;
+}
+
+function calCurveSVG(fit, xUnit, yUnit){
+  return function(C){
+    if(!fit.ok) return svgWrap(440,220,"",C);
+    const W=460, H=260, L=64, R=W-18, T=18, B=H-46;
+    const xmax = niceMax(Math.max.apply(null, fit.rows.map(function(r){ return r.x; })));
+    const ymax = niceMax(Math.max.apply(null, fit.rows.map(function(r){
+      return r.y + (isFinite(r.sd)?r.sd:0); }).concat([fit.intercept+fit.slope*xmax])));
+    const sx = function(x){ return L+(R-L)*(x/xmax); }, sy = function(y){ return B-(B-T)*(y/ymax); };
+    let g = "";
+    for(let i=0;i<=4;i++){
+      const y = T+(B-T)*i/4, v = ymax*(1-i/4);
+      g += "<line x1=\""+L+"\" y1=\""+y.toFixed(1)+"\" x2=\""+R+"\" y2=\""+y.toFixed(1)+"\" stroke=\""+C.rule+"\" stroke-width=\"1\"/>"+
+           "<text x=\""+(L-6)+"\" y=\""+(y+3.5).toFixed(1)+"\" font-size=\"10\" text-anchor=\"end\" fill=\""+C.faint+"\">"+sig(v,3)+"</text>";
+    }
+    for(let i=0;i<=4;i++){
+      const x = L+(R-L)*i/4, v = xmax*i/4;
+      g += "<text x=\""+x.toFixed(1)+"\" y=\""+(B+16)+"\" font-size=\"10\" text-anchor=\"middle\" fill=\""+C.faint+"\">"+sig(v,3)+"</text>";
+    }
+    g += "<line x1=\""+L+"\" y1=\""+B+"\" x2=\""+R+"\" y2=\""+B+"\" stroke=\""+C.faint+"\" stroke-width=\"1\"/>";
+    g += "<line x1=\""+L+"\" y1=\""+T+"\" x2=\""+L+"\" y2=\""+B+"\" stroke=\""+C.faint+"\" stroke-width=\"1\"/>";
+    const y0 = fit.intercept, y1 = fit.intercept + fit.slope*xmax;
+    g += "<line x1=\""+sx(0)+"\" y1=\""+sy(Math.max(0,Math.min(ymax,y0))).toFixed(1)+"\" x2=\""+sx(xmax)+
+         "\" y2=\""+sy(Math.max(0,Math.min(ymax,y1))).toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.6\" opacity=\".75\"/>";
+    fit.rows.forEach(function(r){
+      const x = sx(r.x), y = sy(r.y);
+      if(isFinite(r.sd) && r.sd>0){
+        const yt = sy(r.y+r.sd), yb = sy(r.y-r.sd);
+        g += "<line x1=\""+x.toFixed(1)+"\" y1=\""+yt.toFixed(1)+"\" x2=\""+x.toFixed(1)+"\" y2=\""+yb.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>"+
+             "<line x1=\""+(x-4).toFixed(1)+"\" y1=\""+yt.toFixed(1)+"\" x2=\""+(x+4).toFixed(1)+"\" y2=\""+yt.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>"+
+             "<line x1=\""+(x-4).toFixed(1)+"\" y1=\""+yb.toFixed(1)+"\" x2=\""+(x+4).toFixed(1)+"\" y2=\""+yb.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>";
+      }
+      g += "<circle cx=\""+x.toFixed(1)+"\" cy=\""+y.toFixed(1)+"\" r=\"3.4\" fill=\""+C.accent+"\"/>";
+    });
+    g += "<text x=\""+((L+R)/2)+"\" y=\""+(H-10)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\">concentration"+(xUnit?" ("+esc(xUnit)+")":"")+"</text>";
+    g += "<text x=\"14\" y=\""+((T+B)/2)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\" transform=\"rotate(-90 14 "+((T+B)/2)+")\">response"+(yUnit?" ("+esc(yUnit)+")":"")+"</text>";
+    g += "<text x=\""+(L+10)+"\" y=\""+(T+14)+"\" font-size=\"10\" fill=\""+C.faint+"\">y = "+sig(fit.slope,5)+" x "+(fit.intercept<0?"- ":"+ ")+sig(Math.abs(fit.intercept),4)+",  r"+"\u00B2 = "+sig(fit.r2,5)+"</text>";
+    return svgWrap(W,H,g,C);
+  };
+}
+function residualSVG(fit){
+  return function(C){
+    if(!fit.ok) return svgWrap(460,260,"",C);
+    const W=460, H=260, L=64, R=W-18, T=18, B=H-46;
+    const pts = fit.obsResiduals && fit.obsResiduals.length ? fit.obsResiduals : fit.rows;
+    const xs = pts.map(function(r){ return r.x; });
+    const xmax = niceMax(Math.max.apply(null, xs));
+    const m = niceMax(Math.max.apply(null, pts.map(function(r){ return Math.abs(r.res); })) || 1);
+    const sx = function(x){ return L+(R-L)*(x/xmax); }, sy = function(r){ return (T+B)/2-((B-T)/2-10)*(r/m); };
+    let g = "";
+    [m, m/2, 0, -m/2, -m].forEach(function(v){
+      const y = sy(v);
+      g += "<line x1=\""+L+"\" y1=\""+y.toFixed(1)+"\" x2=\""+R+"\" y2=\""+y.toFixed(1)+"\" stroke=\""+
+           (v===0?C.faint:C.rule)+"\" stroke-width=\"1\"/>"+
+           "<text x=\""+(L-6)+"\" y=\""+(y+3.5).toFixed(1)+"\" font-size=\"10\" text-anchor=\"end\" fill=\""+C.faint+"\">"+sig(v,2)+"</text>";
+    });
+    for(let i=0;i<=4;i++){
+      const x = L+(R-L)*i/4;
+      g += "<text x=\""+x.toFixed(1)+"\" y=\""+(B+16)+"\" font-size=\"10\" text-anchor=\"middle\" fill=\""+C.faint+"\">"+sig(xmax*i/4,3)+"</text>";
+    }
+    pts.forEach(function(r){
+      g += "<circle cx=\""+sx(r.x).toFixed(1)+"\" cy=\""+sy(r.res).toFixed(1)+"\" r=\"3.2\" fill=\""+C.accent+"\"/>";
+    });
+    g += "<text x=\""+((L+R)/2)+"\" y=\""+(H-10)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\">concentration</text>";
+    g += "<text x=\"14\" y=\""+((T+B)/2)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\" transform=\"rotate(-90 14 "+((T+B)/2)+")\">residual</text>";
+    return svgWrap(W,H,g,C);
+  };
+}
+
+/* ---------- dissolution ---------- */
+function dissoCompute(cfg, pts){
+  const notes = [], rows = [];
+  const m = num(cfg.slope), b = isFinite(num(cfg.intercept)) ? num(cfg.intercept) : 0;
+  const Vb = num(cfg.vol), Vs = isFinite(num(cfg.withdrawn)) ? num(cfg.withdrawn) : 0;
+  const DF = isFinite(num(cfg.df)) ? num(cfg.df) : 1, dose = num(cfg.dose);
+  if(!isFinite(m) || m === 0){ notes.push("Enter the calibration slope, or choose a saved calibration curve, before the profile can be calculated."); return {ok:false, rows:rows, notes:notes}; }
+  if(!isFinite(Vb) || Vb <= 0){ notes.push("Enter the bath volume in millilitres."); return {ok:false, rows:rows, notes:notes}; }
+  if(!isFinite(dose) || dose <= 0){ notes.push("Enter the label claim per unit in milligrams."); return {ok:false, rows:rows, notes:notes}; }
+  const doseUg = dose*1000;
+
+  const tp = (pts||[]).map(function(p){
+    return { t:num(p.t), a:(p.a||[]).map(num), r:num(p.r) };
+  }).filter(function(p){ return isFinite(p.t); }).sort(function(a,c){ return a.t-c.t; });
+  if(tp.length < 3){ notes.push("At least three time points are needed."); return {ok:false, rows:rows, notes:notes}; }
+
+  const nVes = Math.max.apply(null, tp.map(function(p){ return p.a.length; }).concat([0]));
+  const good = [];
+  for(let v=0; v<nVes; v++){
+    if(tp.every(function(p){ return isFinite(p.a[v]); })) good.push(v);
+  }
+  if(!good.length){ notes.push("No vessel has a complete set of readings across every time point."); return {ok:false, rows:rows, notes:notes}; }
+  if(good.length < nVes) notes.push((nVes-good.length)+" of "+nVes+" vessels have a missing reading at one or more time points and were left out. A vessel is used only when its profile is complete, because a cumulative correction cannot be carried across a gap.");
+
+  const perVessel = good.map(function(v){
+    let carry = 0, k = 0;
+    return tp.map(function(p){
+      const conc = (p.a[v]-b)/m*DF;
+      const V = cfg.replaced === "no" ? Vb - k*Vs : Vb;
+      const amount = conc*V + Vs*carry;
+      carry += conc; k++;
+      return { conc:conc, amount:amount, pct:amount/doseUg*100 };
+    });
+  });
+
+  tp.forEach(function(p, i){
+    const pcts = perVessel.map(function(prof){ return prof[i].pct; });
+    const s = meanSD(pcts);
+    const concs = perVessel.map(function(prof){ return prof[i].conc; });
+    const cs = meanSD(concs);
+    const abs = meanSD(good.map(function(v){ return p.a[v]; }));
+    rows.push({ t:p.t, per:pcts, mean:s.mean, sd:s.sd, cv:s.cv, nVes:s.n,
+      absMean:abs.mean, absSD:abs.sd, conc:cs.mean, concSD:cs.sd,
+      amount:s.mean*doseUg/100, pct:s.mean, ref:p.r });
+  });
+
+  rows.forEach(function(r, i){
+    if(!isFinite(r.cv) || r.nVes < 2) return;
+    const limit = (i === 0 || r.t <= 10) ? 20 : 10;
+    if(r.cv > limit) notes.push("Relative standard deviation of the release at "+r.t+" min is "+r.cv.toFixed(1)+
+      " percent, above the "+limit+" percent commonly accepted at this point. An f2 comparison is not reliable with this variability.");
+  });
+  if(rows.some(function(r){ return r.pct > 110; })) notes.push("A calculated release above 110 percent usually means the dilution factor, the bath volume, or the label claim is wrong.");
+  if(rows.some(function(r){ return r.pct < -1; })) notes.push("A negative calculated release usually means the calibration intercept or the blank correction is wrong.");
+  return { ok:true, rows:rows, notes:notes, doseUg:doseUg, vessels:good.length, perVessel:perVessel };
+}
+
+function dissoKinetics(rows){
+  const out = { models:[], notes:[] };
+  const pts = rows.filter(function(r){ return isFinite(r.t) && r.t > 0 && isFinite(r.pct); });
+  if(pts.length < 3){ out.notes.push("At least three time points after zero are required for kinetic fitting."); return out; }
+  const t = pts.map(function(r){ return r.t; }), Q = pts.map(function(r){ return r.pct; });
+
+  const zero = linfit(t, Q);
+  out.models.push({ name:"Zero order", fit:zero, k:zero.slope, ku:"percent per min", scale:"Q vs t" });
+
+  const fo = pts.filter(function(r){ return r.pct < 100; });
+  if(fo.length >= 3){
+    const f = linfit(fo.map(function(r){return r.t;}), fo.map(function(r){ return Math.log10(100-r.pct); }));
+    out.models.push({ name:"First order", fit:f, k:-f.slope*2.303, ku:"per min", scale:"log(100 - Q) vs t" });
+    if(fo.length < pts.length) out.notes.push("Points at or above 100 percent release cannot be transformed and were left out of the first-order fit.");
+  }
+  const hig = linfit(t.map(Math.sqrt), Q);
+  out.models.push({ name:"Higuchi", fit:hig, k:hig.slope, ku:"percent per min^0.5", scale:"Q vs sqrt(t)" });
+
+  const hx=[], hy=[];
+  pts.forEach(function(r){ if(r.pct < 100){ hx.push(r.t); hy.push(Math.cbrt(100)-Math.cbrt(100-r.pct)); } });
+  if(hx.length >= 3) out.models.push({ name:"Hixson-Crowell", fit:linfit(hx,hy), k:linfit(hx,hy).slope, ku:"per min", scale:"cube-root remaining vs t" });
+
+  const kp = pts.filter(function(r){ return r.pct > 0 && r.pct <= 60; });
+  if(kp.length >= 3){
+    const f = linfit(kp.map(function(r){ return Math.log10(r.t); }), kp.map(function(r){ return Math.log10(r.pct); }));
+    out.models.push({ name:"Korsmeyer-Peppas", fit:f, k:Math.pow(10,f.intercept), ku:"", n:f.slope,
+      scale:"log Q vs log t, Q <= 60 percent" });
+    out.peppasN = f.slope;
+    out.notes.push("The release exponent n is "+f.slope.toFixed(3)+", fitted to the "+kp.length+
+      " points at or below 60 percent release. For a cylindrical matrix, n at or below 0.45 indicates Fickian diffusion, between 0.45 and 0.89 anomalous transport, 0.89 case II transport, and above 0.89 super case II. These boundaries depend on geometry and differ for spheres and films.");
+  } else {
+    out.notes.push("Korsmeyer-Peppas needs at least three points at or below 60 percent release, and there are only "+kp.length+". The model has been omitted rather than fitted to unsuitable data.");
+  }
+
+  let auc=0, mn=0, md=0, pt=0, pq=0;
+  pts.slice().sort(function(a,b){return a.t-b.t;}).forEach(function(r){
+    auc += (r.pct+pq)/2*(r.t-pt);
+    const dq = r.pct-pq;
+    mn += ((r.t+pt)/2)*dq; md += dq;
+    pt = r.t; pq = r.pct;
+  });
+  out.tLast = pt;
+  out.de = pt>0 ? auc/(100*pt)*100 : NaN;
+  out.mdt = md!==0 ? mn/md : NaN;
+
+  out.models.sort(function(a,b){ return (isFinite(b.fit.r2)?b.fit.r2:-1)-(isFinite(a.fit.r2)?a.fit.r2:-1); });
+  if(out.models.length){
+    out.best = out.models[0].name;
+    out.notes.push("Ranked by r squared the closest fit is "+out.models[0].name+
+      ", but the models are fitted on different transformed scales, so their r squared values are not strictly comparable and the ranking is indicative only. Report the model you can justify mechanistically, not merely the highest number.");
+  }
+  return out;
+}
+
+function dissoSimilarity(rows, nUnits){
+  const out = { notes:[] };
+  const pairs = rows.filter(function(r){ return r.t > 0 && isFinite(r.pct) && isFinite(r.ref); });
+  if(pairs.length < 3){
+    if(pairs.length) out.notes.push("f1 and f2 need at least three time points with a reference value; only "+pairs.length+" were given.");
+    return out;
+  }
+  let sAbs=0, sRef=0, sSq=0, sT=0, sR=0;
+  pairs.forEach(function(p){ sAbs+=Math.abs(p.ref-p.pct); sRef+=p.ref; sSq+=(p.ref-p.pct)*(p.ref-p.pct); sT+=p.pct; sR+=p.ref; });
+  out.n = pairs.length;
+  out.f1 = sRef!==0 ? sAbs/sRef*100 : NaN;
+  out.f2 = 50*Math.log10(100/Math.sqrt(1+sSq/pairs.length));
+  const mT=sT/pairs.length, mR=sR/pairs.length;
+  let ctr=0, ct=0, cr=0;
+  pairs.forEach(function(p){ ctr+=(p.pct-mT)*(p.ref-mR); ct+=(p.pct-mT)*(p.pct-mT); cr+=(p.ref-mR)*(p.ref-mR); });
+  out.pearson = (ct>0&&cr>0) ? ctr/Math.sqrt(ct*cr) : NaN;
+  const overT = pairs.filter(function(p){ return p.pct>85; }).length;
+  const overR = pairs.filter(function(p){ return p.ref>85; }).length;
+  if(overT>1 || overR>1) out.notes.push("Only one measurement above 85 percent release should be included for either profile. There are "+overT+" for the test and "+overR+" for the reference, so this f2 value does not meet the usual regulatory condition.");
+  const early = pairs.filter(function(p){ return p.t<=15; });
+  if(early.length && early.every(function(p){ return p.pct>=85 && p.ref>=85; }))
+    out.notes.push("Both profiles exceed 85 percent within 15 minutes, in which case the products are regarded as similar and an f2 comparison is not required.");
+  const n = parseInt(nUnits,10);
+  if(isFinite(n) && n<12) out.notes.push("f2 is conventionally calculated on twelve units per profile. This calculation used "+n+
+    ", which is common in academic work but should be stated as a limitation rather than presented as a regulatory comparison.");
+  out.notes.push("f1 below 15 and f2 between 50 and 100 are the usual criteria for similarity.");
+  return out;
+}
+
+function dissoProfileSVG(rows){
+  return function(C){
+    const pts = rows.filter(function(r){ return isFinite(r.t) && isFinite(r.pct); });
+    if(pts.length < 2) return svgWrap(460,270,"",C);
+    const W=460, H=270, L=58, R=W-18, T=18, B=H-46;
+    const tMax = niceMax(Math.max.apply(null, pts.map(function(r){ return r.t; })));
+    const hasRef = pts.some(function(r){ return isFinite(r.ref); });
+    const yTop = Math.max.apply(null, pts.map(function(r){
+      return Math.max(r.pct + (isFinite(r.sd)?r.sd:0), isFinite(r.ref)?r.ref:0); }));
+    const yMax = Math.min(120, Math.max(100, Math.ceil(yTop/20)*20));
+    const sx = function(t){ return L+(R-L)*(t/tMax); }, sy = function(q){ return B-(B-T)*(q/yMax); };
+    let g = "";
+    for(let i=0;i<=5;i++){
+      const y = T+(B-T)*i/5, v = yMax*(1-i/5);
+      g += "<line x1=\""+L+"\" y1=\""+y.toFixed(1)+"\" x2=\""+R+"\" y2=\""+y.toFixed(1)+"\" stroke=\""+C.rule+"\" stroke-width=\"1\"/>"+
+           "<text x=\""+(L-6)+"\" y=\""+(y+3.5).toFixed(1)+"\" font-size=\"10\" text-anchor=\"end\" fill=\""+C.faint+"\">"+v.toFixed(0)+"</text>";
+    }
+    for(let i=0;i<=4;i++){
+      const x = L+(R-L)*i/4;
+      g += "<text x=\""+x.toFixed(1)+"\" y=\""+(B+16)+"\" font-size=\"10\" text-anchor=\"middle\" fill=\""+C.faint+"\">"+(tMax*i/4).toFixed(0)+"</text>";
+    }
+    g += "<line x1=\""+L+"\" y1=\""+B+"\" x2=\""+R+"\" y2=\""+B+"\" stroke=\""+C.faint+"\" stroke-width=\"1\"/>"+
+         "<line x1=\""+L+"\" y1=\""+T+"\" x2=\""+L+"\" y2=\""+B+"\" stroke=\""+C.faint+"\" stroke-width=\"1\"/>";
+    const path = pts.map(function(r,i){ return (i?"L":"M")+sx(r.t).toFixed(1)+" "+sy(r.pct).toFixed(1); }).join(" ");
+    g += "<path d=\""+path+"\" fill=\"none\" stroke=\""+C.accent+"\" stroke-width=\"2\"/>";
+    pts.forEach(function(r){
+      const x = sx(r.t);
+      if(isFinite(r.sd) && r.sd>0){
+        const yt = sy(Math.min(yMax,r.pct+r.sd)), yb = sy(Math.max(0,r.pct-r.sd));
+        g += "<line x1=\""+x.toFixed(1)+"\" y1=\""+yt.toFixed(1)+"\" x2=\""+x.toFixed(1)+"\" y2=\""+yb.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>"+
+             "<line x1=\""+(x-4).toFixed(1)+"\" y1=\""+yt.toFixed(1)+"\" x2=\""+(x+4).toFixed(1)+"\" y2=\""+yt.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>"+
+             "<line x1=\""+(x-4).toFixed(1)+"\" y1=\""+yb.toFixed(1)+"\" x2=\""+(x+4).toFixed(1)+"\" y2=\""+yb.toFixed(1)+"\" stroke=\""+C.accent+"\" stroke-width=\"1.2\"/>";
+      }
+      g += "<circle cx=\""+x.toFixed(1)+"\" cy=\""+sy(r.pct).toFixed(1)+"\" r=\"3.2\" fill=\""+C.accent+"\"/>";
+    });
+    if(hasRef){
+      const rp = pts.filter(function(r){ return isFinite(r.ref); });
+      g += "<path d=\""+rp.map(function(r,i){ return (i?"L":"M")+sx(r.t).toFixed(1)+" "+sy(r.ref).toFixed(1); }).join(" ")+
+           "\" fill=\"none\" stroke=\""+C.rec+"\" stroke-width=\"2\" stroke-dasharray=\"5 4\"/>"+
+           rp.map(function(r){ return "<circle cx=\""+sx(r.t).toFixed(1)+"\" cy=\""+sy(r.ref).toFixed(1)+"\" r=\"3.2\" fill=\""+C.rec+"\"/>"; }).join("");
+      g += "<text x=\""+(L+12)+"\" y=\""+(T+14)+"\" font-size=\"10\" fill=\""+C.rec+"\">reference (dashed)</text>";
+    }
+    g += "<text x=\""+((L+R)/2)+"\" y=\""+(H-10)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\">time (min)</text>";
+    g += "<text x=\"14\" y=\""+((T+B)/2)+"\" font-size=\"10.5\" text-anchor=\"middle\" fill=\""+C.ink+"\" transform=\"rotate(-90 14 "+((T+B)/2)+")\">cumulative release (percent)</text>";
+    const anyN = pts.filter(function(r){ return r.nVes>1; }).length;
+    if(anyN) g += "<text x=\""+(R-4)+"\" y=\""+(T+14)+"\" font-size=\"9.5\" text-anchor=\"end\" fill=\""+C.faint+"\">mean \u00B1 SD, n = "+pts[0].nVes+"</text>";
+    return svgWrap(W,H,g,C);
+  };
+}
+
+function dissoReport(cfg, pts){
+  const c = dissoCompute(cfg, pts);
+  if(!c.ok) return { ok:false, notes:c.notes, rows:c.rows };
+  const k = dissoKinetics(c.rows), s = dissoSimilarity(c.rows, cfg.units);
+  return { ok:true, rows:c.rows, vessels:c.vessels,
+    notes:c.notes.concat(k.notes, s.notes||[]), kin:k, sim:s };
+}
+
+/* ================= composer wiring: calibration and dissolution ================= */
+
+const reportNotice = () => "Generated using Field Register. Field Register is owned by " + REPORT.owner + ".";
+
+/* ---------- calibration ---------- */
+let calRep = 1;
+let pairsR = [{x:"",y:[""]},{x:"",y:[""]},{x:"",y:[""]}];
+
+function setCalRep(n){
+  calRep = Math.max(1, Math.min(8, n));
+  pairsR.forEach(p=>{
+    while(p.y.length < calRep) p.y.push("");
+    while(p.y.length > calRep) p.y.pop();
+  });
+  $("cRepN").textContent = calRep;
+  paintPairs();
+}
+$("cRepPlus").addEventListener("click",()=>setCalRep(calRep+1));
+$("cRepMinus").addEventListener("click",()=>setCalRep(calRep-1));
+$("btnAddRow").addEventListener("click",()=>{ pairsR.push({x:"",y:new Array(calRep).fill("")}); paintPairs(); });
+
+function paintPairs(){
+  $("cHead").innerHTML = "<th>Concentration</th>" +
+    Array.from({length:calRep},(_,j)=>"<th>"+(calRep>1?"Response "+(j+1):"Response")+"</th>").join("") + "<th></th>";
+  const tb = $("pairBody"); tb.innerHTML = "";
+  pairsR.forEach((p,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td><input inputmode=\"decimal\" value=\""+esc(p.x)+"\" aria-label=\"Concentration\"></td>" +
+      p.y.map((v,j)=>"<td><input inputmode=\"decimal\" value=\""+esc(v)+"\" aria-label=\"Response "+(j+1)+"\"></td>").join("") +
+      "<td><button class=\"del\" type=\"button\" aria-label=\"Remove level\">&times;</button></td>";
+    const ins = tr.querySelectorAll("input");
+    ins[0].addEventListener("input",()=>{ pairsR[i].x = ins[0].value; paintFit(); });
+    for(let j=1;j<ins.length;j++) ins[j].addEventListener("input",()=>{ pairsR[i].y[j-1] = ins[j].value; paintFit(); });
+    tr.querySelector(".del").addEventListener("click",()=>{ pairsR.splice(i,1); paintPairs(); });
+    tb.appendChild(tr);
+  });
+  paintFit();
+}
+["cW","cOrigin"].forEach(id=>$(id).addEventListener("change",paintFit));
+["cXu","cYu","cAnalyte"].forEach(id=>$(id).addEventListener("input",paintFit));
+const currentFit = () => regress(pairsR, $("cW").value, $("cOrigin").value);
+
+function calibHTML(fit, xu, yu, compact){
+  if(!fit.ok) return "<div class=\"mono\">"+esc(fit.notes[0]||"Enter at least three levels.")+"</div>";
+  let h = "<div class=\"eq mono\">y = "+sig(fit.slope,6)+" x "+(fit.intercept<0?"- ":"+ ")+sig(Math.abs(fit.intercept),6)+"</div>"+
+    "<div class=\"mono\">r&sup2; = "+sig(fit.r2,6)+" &nbsp; s(y/x) = "+sig(fit.syx,4)+" &nbsp; levels = "+fit.n+
+    " &nbsp; readings = "+fit.nObs+"</div>"+
+    "<div class=\"mono\">LOD = "+sig(fit.lod,4)+" "+esc(xu||"")+" &nbsp; LOQ = "+sig(fit.loq,4)+" "+esc(xu||"")+"</div>"+
+    "<div class=\"mono\">largest back-calculated error "+(isFinite(fit.maxRelErr)?fit.maxRelErr.toFixed(1):"n/a")+" percent</div>";
+  h += "<div class=\"figrow\">" +
+    figure(calCurveSVG(fit,xu,yu), "calibration curve") +
+    figure(residualSVG(fit), "residual plot") + "</div>";
+  if(!compact){
+    h += "<table class=\"dtab\"><thead><tr><th>Level</th><th>"+esc(xu||"conc")+"</th><th>mean response</th>"+
+      (fit.repMax>1?"<th>SD</th><th>%CV</th><th>n</th>":"")+
+      "<th>fitted</th><th>residual</th><th>back-calc</th><th>error %</th></tr></thead><tbody>"+
+      fit.rows.map((r,i)=>"<tr><td>"+(i+1)+"</td><td>"+sig(r.x,6)+"</td><td>"+sig(r.y,6)+"</td>"+
+        (fit.repMax>1?"<td>"+(isFinite(r.sd)?sig(r.sd,3):"-")+"</td><td>"+(isFinite(r.cv)?r.cv.toFixed(1):"-")+"</td><td>"+r.nRep+"</td>":"")+
+        "<td>"+sig(r.fit,6)+"</td><td>"+sig(r.res,3)+"</td><td>"+sig(r.back,5)+"</td><td>"+
+        (isFinite(r.relErr)?r.relErr.toFixed(1):"n/a")+"</td></tr>").join("")+"</tbody></table>";
+  }
+  h += fit.notes.map(n=>"<div class=\"flag\">"+esc(n)+"</div>").join("");
+  return h;
+}
+function paintFit(){ $("fitBox").innerHTML = calibHTML(currentFit(), $("cXu").value, $("cYu").value, true); }
+
+/* ---------- dissolution ---------- */
+let dVes = 3;
+let dpoints = [{t:"",a:["","",""],r:""},{t:"",a:["","",""],r:""},{t:"",a:["","",""],r:""}];
+
+function setVes(n){
+  dVes = Math.max(1, Math.min(12, n));
+  dpoints.forEach(p=>{
+    while(p.a.length < dVes) p.a.push("");
+    while(p.a.length > dVes) p.a.pop();
+  });
+  $("dVesN").textContent = dVes;
+  if(!$("dUnits").value || parseInt($("dUnits").value,10) < dVes) $("dUnits").value = dVes;
+  paintD();
+}
+$("dVesPlus").addEventListener("click",()=>setVes(dVes+1));
+$("dVesMinus").addEventListener("click",()=>setVes(dVes-1));
+$("btnAddD").addEventListener("click",()=>{ dpoints.push({t:"",a:new Array(dVes).fill(""),r:""}); paintD(); });
+
+function paintD(){
+  $("dHead").innerHTML = "<th>Time (min)</th>" +
+    Array.from({length:dVes},(_,j)=>"<th>"+(dVes>1?"Vessel "+(j+1):"Absorbance")+"</th>").join("") +
+    "<th>Reference %</th><th></th>";
+  const tb = $("dBody"); tb.innerHTML = "";
+  dpoints.forEach((p,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td><input inputmode=\"decimal\" value=\""+esc(p.t)+"\" aria-label=\"Time\"></td>" +
+      p.a.map((v,j)=>"<td><input inputmode=\"decimal\" value=\""+esc(v)+"\" aria-label=\"Vessel "+(j+1)+"\"></td>").join("") +
+      "<td><input inputmode=\"decimal\" value=\""+esc(p.r)+"\" aria-label=\"Reference percent\"></td>" +
+      "<td><button class=\"del\" type=\"button\" aria-label=\"Remove time point\">&times;</button></td>";
+    const ins = tr.querySelectorAll("input");
+    ins[0].addEventListener("input",()=>{ dpoints[i].t = ins[0].value; paintDFit(); });
+    for(let j=1;j<=dVes;j++) ins[j].addEventListener("input",()=>{ dpoints[i].a[j-1] = ins[j].value; paintDFit(); });
+    ins[dVes+1].addEventListener("input",()=>{ dpoints[i].r = ins[dVes+1].value; paintDFit(); });
+    tr.querySelector(".del").addEventListener("click",()=>{ dpoints.splice(i,1); paintD(); });
+    tb.appendChild(tr);
+  });
+  paintDFit();
+}
+function dissoCfg(){
+  return { product:$("dProduct").value.trim(), dose:$("dDose").value.trim(), units:$("dUnits").value.trim(),
+    medium:$("dMedium").value.trim(), ph:$("dPH").value.trim(), temp:$("dTemp").value.trim(),
+    apparatus:$("dApp").value, rpm:$("dRPM").value.trim(), vol:$("dVol").value.trim(),
+    withdrawn:$("dWd").value.trim(), replaced:$("dRep").value, df:$("dDF").value.trim(),
+    detection:$("dWave").value.trim(), slope:$("dSlope").value.trim(), intercept:$("dInt").value.trim(),
+    calibRef:$("dCal").value||null, computedBy:"field-register "+APP_VERSION };
+}
+["dSlope","dInt","dVol","dWd","dDF","dDose","dUnits","dProduct","dMedium"].forEach(id=>$(id).addEventListener("input",paintDFit));
+["dRep","dApp"].forEach(id=>$(id).addEventListener("change",paintDFit));
+$("dCal").addEventListener("change",()=>{
+  const id = $("dCal").value; if(!id) return;
+  const e = entries.filter(x=>x.id===id)[0];
+  if(!e || !e.calib) return;
+  const f = regress(e.calib.pairs, e.calib.weighting, e.calib.origin);
+  if(f.ok){
+    $("dSlope").value = f.slope.toPrecision(8);
+    $("dInt").value = f.intercept.toPrecision(8);
+    if(!$("dWave").value && e.calib.method) $("dWave").value = e.calib.method;
+    toast("Slope and intercept taken from entry "+e.seq); paintDFit();
+  }
+});
+$("dRef").addEventListener("change",()=>{
+  const id = $("dRef").value; if(!id) return;
+  const e = entries.filter(x=>x.id===id)[0];
+  if(!e || !e.disso) return;
+  const rp = dissoReport(e.disso.cfg, e.disso.points);
+  if(!rp.ok){ toast("That entry does not compute a usable profile."); return; }
+  let hit = 0;
+  dpoints.forEach(p=>{
+    const t = num(p.t);
+    const m = rp.rows.filter(r=>Math.abs(r.t-t)<1e-9)[0];
+    if(m){ p.r = m.pct.toFixed(2); hit++; }
+  });
+  paintD();
+  toast(hit ? ("Reference filled at "+hit+" matching time points") : "No time points matched that profile.");
+});
+function refreshDLists(){
+  const cals = entries.filter(e=>e.kind==="calibration" && !e.voided).sort((a,b)=>b.createdAt-a.createdAt);
+  const cur = $("dCal").value;
+  $("dCal").innerHTML = "<option value=\"\">Enter slope and intercept by hand</option>" +
+    cals.map(e=>"<option value=\""+esc(e.id)+"\">#"+esc(e.seq)+" "+esc((e.calib&&e.calib.analyte)||"curve")+" "+esc(fmtShort(e.createdAt))+"</option>").join("");
+  $("dCal").value = cals.some(e=>e.id===cur) ? cur : "";
+  const dis = entries.filter(e=>e.kind==="dissolution" && !e.voided).sort((a,b)=>b.createdAt-a.createdAt);
+  const cur2 = $("dRef").value;
+  $("dRef").innerHTML = "<option value=\"\">Type reference values by hand</option>" +
+    dis.map(e=>"<option value=\""+esc(e.id)+"\">#"+esc(e.seq)+" "+esc((e.disso&&e.disso.cfg&&e.disso.cfg.product)||"profile")+"</option>").join("");
+  $("dRef").value = dis.some(e=>e.id===cur2) ? cur2 : "";
+}
+function kinTableHTML(k){
+  return "<table class=\"dtab\"><thead><tr><th>Model</th><th>Transformed fit</th><th>r&sup2;</th><th>Rate constant</th></tr></thead><tbody>"+
+    k.models.map(m=>"<tr><td>"+esc(m.name)+"</td><td style=\"text-align:left\">"+esc(m.scale)+"</td><td>"+
+      (isFinite(m.fit.r2)?m.fit.r2.toFixed(5):"n/a")+"</td><td>"+
+      (isFinite(m.k)?sig(m.k,5)+" "+esc(m.ku||""):"n/a")+(m.n!==undefined?", n = "+m.n.toFixed(4):"")+"</td></tr>").join("")+
+    "</tbody></table>";
+}
+function dissoHTML(cfg, pts, compact){
+  const rep = dissoReport(cfg, pts);
+  if(!rep.ok) return "<div class=\"mono\">"+esc(rep.notes[0]||"Enter the calibration slope and at least three time points.")+"</div>";
+  const r = rep.rows, multi = rep.vessels > 1, hasRef = r.some(x=>isFinite(x.ref));
+  let h = "<table class=\"dtab\"><thead><tr><th>t (min)</th><th>mean A</th><th>conc (&micro;g/mL)</th>"+
+    "<th>% released</th>"+(multi?"<th>SD</th><th>%CV</th>":"")+(hasRef?"<th>reference %</th>":"")+"</tr></thead><tbody>"+
+    r.map(x=>"<tr><td>"+x.t+"</td><td>"+sig(x.absMean,5)+"</td><td>"+sig(x.conc,5)+"</td><td>"+x.pct.toFixed(2)+"</td>"+
+      (multi?"<td>"+(isFinite(x.sd)?x.sd.toFixed(2):"-")+"</td><td>"+(isFinite(x.cv)?x.cv.toFixed(1):"-")+"</td>":"")+
+      (hasRef?"<td>"+(isFinite(x.ref)?x.ref.toFixed(2):"-")+"</td>":"")+"</tr>").join("")+"</tbody></table>";
+  h += "<div class=\"figrow\">"+figure(dissoProfileSVG(r), "dissolution profile")+"</div>";
+  h += "<div class=\"mono\" style=\"margin-top:8px;font-size:13px\">"+
+    (multi?"Mean of "+rep.vessels+" vessels, one standard deviation shown. &nbsp; ":"")+
+    "Dissolution efficiency "+sig(rep.kin.de,4)+" percent to "+rep.kin.tLast+" min &nbsp; mean dissolution time "+sig(rep.kin.mdt,4)+" min</div>";
+  h += "<h4 style=\"margin:14px 0 4px;font-size:12px;color:var(--muted)\">Release kinetics</h4>"+kinTableHTML(rep.kin);
+  if(rep.sim && isFinite(rep.sim.f2)){
+    h += "<h4 style=\"margin:14px 0 4px;font-size:12px;color:var(--muted)\">Profile comparison</h4>"+
+      "<div class=\"mono\" style=\"font-size:13px\">f1 = "+rep.sim.f1.toFixed(2)+" &nbsp; f2 = "+rep.sim.f2.toFixed(2)+
+      " &nbsp; Pearson r = "+rep.sim.pearson.toFixed(4)+" &nbsp; over "+rep.sim.n+" points</div>";
+  }
+  h += rep.notes.map(n=>"<div class=\"media-cap\" style=\"color:var(--warn)\">"+esc(n)+"</div>").join("");
+  if(!compact) h += "<div class=\"media-cap\">Every figure above is computed now from the absorbances recorded in this entry. "+
+    "Each vessel is carried through its own cumulative correction before the vessels are averaged. "+
+    "An in vitro in vivo correlation is not offered, because it would require plasma concentration data this register does not hold.</div>";
+  return h;
+}
+function paintDFit(){ $("dFit").innerHTML = dissoHTML(dissoCfg(), dpoints, true); }
+setCalRep(1); setVes(3);
+
+/* ================= single-entry PDF report ================= */
+async function entryReport(e, person){
+  if(!window.jspdf){ toast("The PDF library did not load. Check the network and reload."); return; }
+  toast("Building the report");
+  const { jsPDF } = window.jspdf;
+  const d = new jsPDF({ unit:"pt", format:"a4" });
+  const W = d.internal.pageSize.getWidth(), H = d.internal.pageSize.getHeight(), M = 46;
+  let y = M;
+  const nl = h => { if(y+h > H-M-26){ d.addPage(); y = M; } };
+  const line = (t,size,style,color) => {
+    d.setFont("helvetica",style||"normal"); d.setFontSize(size||10);
+    d.setTextColor.apply(d, color||[20,30,39]);
+    d.splitTextToSize(String(t), W-2*M).forEach(p=>{ nl(size||10); d.text(p,M,y); y += (size||10)*1.35; });
+  };
+  const kv = (k,v) => { nl(14); d.setFontSize(9.5); d.setTextColor(134,152,165); d.text(k,M,y);
+    d.setTextColor(20,30,39); d.splitTextToSize(String(v), W-2*M-140).forEach((p,i)=>d.text(p,M+140,y+i*12));
+    y += 12*Math.max(1, d.splitTextToSize(String(v), W-2*M-140).length)+2; };
+
+  const title = e.kind === "dissolution" ? "Dissolution study report"
+    : e.kind === "calibration" ? "Calibration curve report" : "Entry report";
+  d.setFont("helvetica","normal"); d.setFontSize(10); d.setTextColor(90,105,118);
+  d.text(INSTITUTE.name, M, y); y += 12;
+  if(INSTITUTE.affiliation){ d.setFontSize(9); d.text(INSTITUTE.affiliation, M, y); y += 12; }
+  y += 8; d.setDrawColor(20,96,110); d.setLineWidth(2); d.line(M,y,W-M,y); y += 22;
+  d.setTextColor(20,30,39); d.setFont("helvetica","bold"); d.setFontSize(18);
+  d.text(title, M, y); y += 24;
+
+  const idn = e.identity || person || {};
+  kv("Recorded by", e.ownerName || idn.fullName || "");
+  if(idn.enrollmentNo) kv("Enrollment number", idn.enrollmentNo);
+  if(idn.program || idn.semester) kv("Program", [idn.program, idn.semester, idn.academicYear].filter(Boolean).join(", "));
+  if(idn.guideName) kv("Guide", idn.guideName);
+  if(idn.projectTitle) kv("Project", idn.projectTitle);
+  kv("Entry", "#"+(e.seq||"?")+"   "+fmtDay(e.createdAt)+"   "+fmtTime(e.createdAt));
+  const sv = e.serverAt && e.serverAt.toDate ? e.serverAt.toDate().toISOString() : "pending upload";
+  kv("Server timestamp", sv);
+  if(e.place) kv("Place", e.place);
+  y += 6;
+
+  if(e.text){ line("Notes", 11, "bold"); line(e.text, 10); y += 4; }
+
+  const figs = [];
+  if(e.kind === "calibration" && e.calib){
+    const c = e.calib, f = regress(c.pairs, c.weighting, c.origin);
+    line("Method", 11, "bold");
+    line([c.analyte, c.method, c.medium].filter(Boolean).join(", "), 10);
+    if(f.ok){
+      line("Result", 11, "bold");
+      line("y = "+sig(f.slope,6)+" x "+(f.intercept<0?"- ":"+ ")+sig(Math.abs(f.intercept),6)+
+        "     r2 = "+sig(f.r2,6)+"     s(y/x) = "+sig(f.syx,4), 10);
+      line("LOD = "+sig(f.lod,4)+" "+(c.xUnit||"")+"     LOQ = "+sig(f.loq,4)+" "+(c.xUnit||"")+
+        "     levels = "+f.n+"     readings = "+f.nObs+"     weighting "+c.weighting+"     through origin "+c.origin, 10);
+      line("Raw data", 11, "bold");
+      f.rows.forEach(r=>line("   "+sig(r.x,6)+" "+(c.xUnit||"")+"   mean "+sig(r.y,6)+
+        (isFinite(r.sd)?"   SD "+sig(r.sd,3)+"   n "+r.nRep:"")+
+        "   back-calculated "+sig(r.back,5)+"   error "+(isFinite(r.relErr)?r.relErr.toFixed(1):"n/a")+" percent", 9));
+      figs.push([calCurveSVG(f, c.xUnit, c.yUnit), "Calibration curve"],
+                [residualSVG(f), "Residual plot"]);
+      f.notes.forEach(n=>line("Note: "+n, 8.5, "italic", [138,90,11]));
+    }
+  }
+  if(e.kind === "dissolution" && e.disso){
+    const c = e.disso.cfg, rp = dissoReport(c, e.disso.points);
+    line("Method", 11, "bold");
+    line([c.product, c.dose?"label claim "+c.dose+" mg":"", c.units?"n = "+c.units:""].filter(Boolean).join(", "), 10);
+    line([c.apparatus, c.rpm?c.rpm+" rpm":"", c.medium, c.ph?"pH "+c.ph:"", c.temp?c.temp+" C":"",
+      c.vol?c.vol+" mL":"", c.withdrawn?c.withdrawn+" mL withdrawn, "+(c.replaced==="no"?"not replaced":"replaced"):"",
+      (c.df&&c.df!=="1")?"dilution factor "+c.df:"", c.detection].filter(Boolean).join("   "), 9, "normal", [110,125,135]);
+    if(rp.ok){
+      const multi = rp.vessels > 1;
+      line("Release profile", 11, "bold");
+      rp.rows.forEach(r=>line("   "+r.t+" min   mean A "+sig(r.absMean,5)+"   "+sig(r.conc,5)+" ug/mL   "+
+        r.pct.toFixed(2)+" percent"+(multi&&isFinite(r.sd)?"  +/- "+r.sd.toFixed(2)+"  (CV "+r.cv.toFixed(1)+" percent)":"")+
+        (isFinite(r.ref)?"   reference "+r.ref.toFixed(2)+" percent":""), 9));
+      if(multi) line("Values are the mean of "+rp.vessels+" vessels. Each vessel was carried through its own cumulative correction before averaging.", 8.5, "italic", [110,125,135]);
+      line("Dissolution efficiency "+sig(rp.kin.de,4)+" percent to "+rp.kin.tLast+" min     mean dissolution time "+sig(rp.kin.mdt,4)+" min", 10);
+      line("Release kinetics", 11, "bold");
+      rp.kin.models.forEach(m=>line("   "+m.name+"  ("+m.scale+")   r2 = "+(isFinite(m.fit.r2)?m.fit.r2.toFixed(5):"n/a")+
+        "   k = "+(isFinite(m.k)?sig(m.k,5)+" "+(m.ku||""):"n/a")+(m.n!==undefined?"   n = "+m.n.toFixed(4):""), 9));
+      if(isFinite(rp.sim.f2)){
+        line("Profile comparison", 11, "bold");
+        line("f1 = "+rp.sim.f1.toFixed(2)+"     f2 = "+rp.sim.f2.toFixed(2)+"     Pearson r = "+rp.sim.pearson.toFixed(4)+
+          "     over "+rp.sim.n+" points", 10);
+      }
+      figs.push([dissoProfileSVG(rp.rows), "Dissolution profile"]);
+      rp.notes.forEach(n=>line("Note: "+n, 8.5, "italic", [138,90,11]));
+    } else {
+      line("The stored data does not compute a complete profile: "+(rp.notes[0]||""), 10, "italic", [167,42,33]);
+    }
+  }
+
+  for(const [build, cap] of figs){
+    try{
+      const cv = await svgToCanvas(build(PRINT_C, true), 3);
+      const w = Math.min(W-2*M, cv.width*0.22), h = cv.height*0.22*(w/(cv.width*0.22));
+      nl(h+22); y += 8;
+      d.addImage(cv.toDataURL("image/jpeg",0.95), "JPEG", M, y, w, h);
+      y += h+4;
+      line(cap, 8.5, "normal", [110,125,135]);
+    }catch(err){ console.warn(err); }
+  }
+
+  y += 10;
+  line("Device clock "+e.createdAtISO+"     Server clock "+sv, 7.5, "normal", [134,152,165]);
+  line("Digest "+(e.hash?e.hash.slice(0,48):"not computed")+"     Previous "+(e.prevHash?e.prevHash.slice(0,24):"first entry"), 7.5, "normal", [134,152,165]);
+  if(e.review) line("Countersigned by "+(e.review.byName||e.review.by)+" on "+e.review.at, 8.5, "normal", [27,107,71]);
+  line("This report is a printed copy. The authoritative record, with its server-written timestamp and digest chain, remains in the application.", 8, "italic", [110,125,135]);
+
+  const who = (idn.fullName || e.ownerName || "register");
+  const pages = d.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    d.setPage(i);
+    d.setDrawColor(210,220,228); d.setLineWidth(0.6); d.line(M, H-40, W-M, H-40);
+    d.setFontSize(7.5); d.setTextColor(134,152,165);
+    d.text(reportNotice(), M, H-28);
+    d.text(who + (idn.enrollmentNo ? "   "+idn.enrollmentNo : ""), M, H-18);
+    d.text("Page "+i+" of "+pages, W-M, H-18, { align:"right" });
+  }
+  const safe = (title+"-"+who).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
+  d.save(safe+"-"+dayKey(e.createdAt)+".pdf");
+  toast("Report saved. Check your downloads folder.");
+}
+
+
+/* ---------- composer mode ---------- */
+$("kObs").addEventListener("click",()=>setKind("obs"));
+$("kCal").addEventListener("click",()=>setKind("cal"));
+$("kDis").addEventListener("click",()=>setKind("dis"));
+function setKind(k){ kind=k;
+  $("kObs").classList.toggle("on",k==="obs");
+  $("kCal").classList.toggle("on",k==="cal");
+  $("kDis").classList.toggle("on",k==="dis");
+  $("calibBox").classList.toggle("hidden",k!=="cal");
+  $("dissoBox").classList.toggle("hidden",k!=="dis");
+  $("autoRepWrap").classList.toggle("hidden",k==="obs");
+  if(k==="dis") refreshDLists();
+}
+
+/* ---------------- hashing and chain ---------------- */
+async function sha256(s){
+  if(!(crypto&&crypto.subtle)) return null;
+  try{ const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,"0")).join(""); }catch(e){ return null; }
+}
+/* Schema 2 adds the identity snapshot. Entries written by earlier versions
+   carry no schema field and must keep their original canonical form, or
+   their digests would no longer verify. */
+function canonical(e){
+  const base={ seq:e.seq, prevHash:e.prevHash, createdAtISO:e.createdAtISO, ownerUid:e.ownerUid,
+    kind:e.kind, text:e.text, project:e.project, tags:e.tags, place:e.place, location:e.location,
+    calib:e.calib||null,
+    media:(e.media||[]).map(m=>({id:m.id,kind:m.kind,size:m.size,exifAt:m.exifAt||null})) };
+  if(e.schema===3) return JSON.stringify(Object.assign({schema:3},base,{identity:e.identity||null,disso:e.disso||null}));
+  if(e.schema===2) return JSON.stringify(Object.assign({schema:2},base,{identity:e.identity||null}));
+  return JSON.stringify(base);
+}
+async function verifyChain(list,host){
+  if(!host) return;
+  const ord=list.slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
+  if(!ord.length){ host.className="chainbar"; host.textContent="No entries yet, so there is no chain to verify."; return; }
+  let prev=null, broken=[];
+  for(const e of ord){
+    if(e._pending) continue;
+    const expect=await sha256((prev||"")+canonical(e));
+    if(e.hash&&expect&&e.hash!==expect) broken.push(e.seq);
+    else if(e.prevHash!==prev&&prev!==null) broken.push(e.seq);
+    prev=e.hash;
+  }
+  if(broken.length){ host.className="chainbar bad";
+    host.textContent="Integrity check failed at entry "+broken.join(", ")+". The stored content does not match its recorded digest. Report this to your supervisor."; }
+  else { host.className="chainbar ok";
+    host.textContent="Integrity check passed. "+ord.length+" entries form an unbroken chain; no entry has been altered or removed since it was recorded."; }
+}
+
+/* ---------------- save ---------------- */
+$("btnSave").addEventListener("click",save);
+$("txt").addEventListener("keydown",e=>{ if((e.metaKey||e.ctrlKey)&&e.key==="Enter") save(); });
+
+async function save(){
+  if(!isSup && !profileComplete(myProfile)){
+    toast("Complete your profile first. Open the Profile tab.");
+    switchTab("profile"); return;
+  }
+  const text=$("txt").value.trim();
+  let calib=null, disso=null;
+  if(kind==="dis"){
+    const cfg=dissoCfg(), chk=dissoReport(cfg,dpoints);
+    if(!chk.ok){ toast(chk.notes[0]||"The dissolution data is not yet complete."); return; }
+    disso={ cfg:cfg, points:dpoints.map(p=>({t:String(p.t).trim(),
+      a:p.a.map(v=>String(v).trim()), r:String(p.r).trim()})).filter(p=>p.t!=="") };
+  }
+  if(kind==="cal"){
+    const f=currentFit();
+    if(!f.ok){ toast(f.notes[0]||"Enter at least three valid levels."); return; }
+    calib={ analyte:$("cAnalyte").value.trim(), method:$("cMethod").value.trim(), medium:$("cMedium").value.trim(),
+      xUnit:$("cXu").value.trim(), yUnit:$("cYu").value.trim(), weighting:$("cW").value, origin:$("cOrigin").value,
+      pairs:pairsR.map(p=>({x:String(p.x).trim(), y:p.y.map(v=>String(v).trim())}))
+        .filter(p=>isFinite(num(p.x)) && p.y.some(v=>isFinite(num(v)))),
+      computedBy:"field-register "+APP_VERSION };
+  }
+  if(!text&&!staged.length&&!calib&&!disso){ toast("Write something, attach a capture, or enter calibration or dissolution data."); $("txt").focus(); return; }
+  const btn=$("btnSave"); btn.disabled=true; btn.textContent="Saving";
+  try{
+    const loc=await getFix(), now=Date.now(), id=uid36();
+    const settled=entries.filter(e=>!e._pending).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const last=settled[settled.length-1]||null;
+    const photo=staged.find(m=>m.kind==="photo");
+    const e={ id, schema:3, ownerUid:me.uid, ownerEmail:(me.email||"").toLowerCase(), ownerName:me.displayName||"",
+      identity:identitySnapshot(),
+      seq:last?(last.seq||0)+1:1, prevHash:last?(last.hash||null):null,
+      kind:kind==="cal"?"calibration":kind==="dis"?"dissolution":"observation",
+      createdAt:now, createdAtISO:new Date(now).toISOString(),
+      tz:Intl.DateTimeFormat().resolvedOptions().timeZone||"", tzOffsetMin:new Date(now).getTimezoneOffset(),
+      text, project:$("proj").value.trim(), place:$("place").value.trim(),
+      tags:$("tags").value.split(",").map(t=>t.trim()).filter(Boolean),
+      location:loc, calib, disso,
+      media:staged.map(m=>({id:m.id,kind:m.kind,mime:m.mime,name:m.name,size:m.size,durationMs:m.durationMs||null,exifAt:m.exifAt||null})),
+      thumb:photo?photo.thumb:null,
+      corrections:[], voided:false, voidReason:null, review:null,
+      appVersion:APP_VERSION, hash:null, serverAt:serverTimestamp() };
+    e.hash=await sha256((e.prevHash||"")+canonical(e));
+    for(const m of staged){
+      await setDoc(doc(db,"media",m.id),{ id:m.id, ownerUid:me.uid, entryId:id, kind:m.kind, mime:m.mime,
+        name:m.name, size:m.size, durationMs:m.durationMs||null, data:m.dataUrl, serverAt:serverTimestamp() });
+    }
+    await setDoc(doc(db,"entries",id),e);
+    staged=[]; $("txt").value=""; $("tags").value=""; renderStaged();
+    const wasKind=kind;
+    if(kind==="cal"){ pairsR=[{x:"",y:new Array(calRep).fill("")},{x:"",y:new Array(calRep).fill("")},{x:"",y:new Array(calRep).fill("")}]; paintPairs(); setKind("obs"); }
+    if(wasKind==="dis"){ dpoints=[{t:"",a:new Array(dVes).fill(""),r:""},{t:"",a:new Array(dVes).fill(""),r:""},{t:"",a:new Array(dVes).fill(""),r:""}]; paintD(); setKind("obs"); }
+    if((wasKind==="cal"||wasKind==="dis") && $("autoReport").checked) entryReport(e, myProfile||{});
+    toast(navigator.onLine?"Entry "+e.seq+" recorded and sealed":"Held on this device. It will upload when you are online.");
+  }catch(err){ console.error(err); toast("Could not save: "+(err.code||"unknown error")); }
+  finally{ btn.disabled=false; btn.textContent="Save entry"; }
+}
+
+/* ---------------- stats, filters, timeline ---------------- */
+function renderStats(){
+  const now=Date.now(), live=entries.filter(e=>!e.voided);
+  $("stats").innerHTML=
+    stat(live.length,"entries")+stat(live.filter(e=>e.createdAt>now-7*86400000).length,"last 7 days")+
+    stat(live.filter(e=>e.kind==="calibration").length,"calibration curves")+
+    stat(live.filter(e=>e.kind==="dissolution").length,"dissolution profiles")+
+    stat(live.filter(e=>e.review).length,"countersigned")+
+    stat(live.length?fmtShort(Math.max.apply(null,live.map(e=>e.createdAt))):"none","last entry");
+}
+const stat=(v,l)=>"<div class=\"stat\"><b>"+esc(v)+"</b><span>"+esc(l)+"</span></div>";
+["q","fProj","fRange"].forEach(id=>$(id).addEventListener("input",render));
+$("fProj").addEventListener("change",render); $("fRange").addEventListener("change",render);
+function filtered(list){
+  const q=$("q").value.trim().toLowerCase(), p=$("fProj").value, days=parseInt($("fRange").value,10);
+  const cut=days?Date.now()-days*86400000:0;
+  return list.filter(e=>{
+    if(p&&e.project!==p) return false;
+    if(cut&&e.createdAt<cut) return false;
+    if(!q) return true;
+    return [e.text,e.project,e.place,(e.tags||[]).join(" "),(e.calib&&e.calib.analyte)||"",
+      (e.disso&&e.disso.cfg&&e.disso.cfg.product)||"",(e.disso&&e.disso.cfg&&e.disso.cfg.medium)||"",
+      (e.corrections||[]).map(a=>a.text).join(" ")].join(" ").toLowerCase().indexOf(q)>-1;
+  }).sort((a,b)=>b.createdAt-a.createdAt);
+}
+function render(){
+  const list=filtered(entries);
+  $("count").textContent=list.length+(list.length===1?" entry":" entries")+(entries.length!==list.length?" of "+entries.length:"");
+  paint($("timeline"),list,entries.length,false);
+  const projs=Array.from(new Set(entries.map(e=>e.project).filter(Boolean))).sort();
+  const places=Array.from(new Set(entries.map(e=>e.place).filter(Boolean))).sort();
+  const sel=$("fProj"), keep=sel.value;
+  sel.innerHTML="<option value=\"\">All experiments</option>"+projs.map(p=>"<option>"+esc(p)+"</option>").join("");
+  sel.value=projs.indexOf(keep)>-1?keep:"";
+  $("projlist").innerHTML=projs.map(p=>"<option value=\""+esc(p)+"\">").join("");
+  $("placelist").innerHTML=places.map(p=>"<option value=\""+esc(p)+"\">").join("");
+  refreshDLists();
+}
+function paint(host,list,total,readonly){
+  host.innerHTML="";
+  if(!total){ host.innerHTML="<div class=\"empty-state\"><strong>The register is empty</strong>"+
+    (readonly?"This student has not recorded anything yet.":"Write the first observation above, or press Voice note and speak it.")+"</div>"; return; }
+  if(!list.length){ host.innerHTML="<div class=\"empty-state\"><strong>Nothing matches this filter</strong>Clear the search box or widen the date range.</div>"; return; }
+  let cur="",group=null;
+  list.forEach(e=>{
+    const k=dayKey(e.createdAt);
+    if(k!==cur){ cur=k; group=document.createElement("section"); group.className="daygroup";
+      const n=list.filter(x=>dayKey(x.createdAt)===k).length;
+      group.innerHTML="<div class=\"dayrule\"><h3>"+esc(fmtDay(e.createdAt))+"</h3><span class=\"n mono\">"+n+"</span></div>";
+      host.appendChild(group); }
+    group.appendChild(row(e,readonly));
+  });
+}
+function row(e,readonly){
+  const a=document.createElement("article");
+  a.className="entry"+(e.voided?" void":""); a.tabIndex=0; a.setAttribute("role","button");
+  const geo=e.location?e.location.lat.toFixed(4)+", "+e.location.lon.toFixed(4):"no fix";
+  const prev=(e.text||"").length>360?e.text.slice(0,360)+" ...":e.text;
+  const nA=(e.media||[]).filter(m=>m.kind==="audio").length, nP=(e.media||[]).filter(m=>m.kind==="photo").length;
+  let cal="";
+  if(e.disso){
+    const rp=dissoReport(e.disso.cfg,e.disso.points);
+    if(rp.ok){ const lastR=rp.rows[rp.rows.length-1];
+      cal="<p class=\"mono\" style=\"font-size:12.5px\">"+esc(e.disso.cfg.product||"dissolution")+": "+
+        lastR.pct.toFixed(1)+" percent at "+lastR.t+" min, closest fit "+esc(rp.kin.best||"n/a")+
+        (isFinite(rp.sim.f2)?", f2 = "+rp.sim.f2.toFixed(1):"")+"</p>"; }
+  }
+  if(e.calib){ const f=regress(e.calib.pairs,e.calib.weighting,e.calib.origin);
+    cal="<p class=\"mono\" style=\"font-size:12.5px\">"+esc(e.calib.analyte||"calibration")+": y = "+sig(f.slope,5)+
+      " x, r&sup2; = "+sig(f.r2,5)+", n = "+f.n+"</p>"; }
+  a.innerHTML=
+    "<div class=\"gutter\"><time class=\"mono\">"+fmtTime(e.createdAt)+"</time>"+
+      "<span class=\"seq mono\">#"+(e.seq||"?")+"</span>"+
+      "<span class=\"geo mono\">"+esc(geo)+"</span>"+
+      (e.kind==="calibration"?"<span class=\"tagm cal\">curve</span>":"")+
+      (e.kind==="dissolution"?"<span class=\"tagm cal\">dissolution</span>":"")+
+      (e.review?"<span class=\"tagm rev\">reviewed</span>":"")+
+      ((e.corrections||[]).length?"<span class=\"tagm cor\">corrected</span>":"")+
+      (e.voided?"<span class=\"tagm vd\">voided</span>":"")+"</div>"+
+    "<div class=\"body\">"+(prev?"<p>"+esc(prev)+"</p>":"<p class=\"empty\">No written note.</p>")+cal+
+      ((e.thumb||nA||nP>1)?"<div class=\"thumbs\">"+(e.thumb?"<img alt=\"\" src=\""+e.thumb+"\">":"")+
+        (nP>1?"<div class=\"badge\">+"+(nP-1)+" more</div>":"")+(nA?"<div class=\"badge\">Voice note</div>":"")+"</div>":"")+
+      metaLine(e,readonly)+"</div>";
+  const open=()=>openEntry(e,readonly);
+  a.addEventListener("click",open);
+  a.addEventListener("keydown",ev=>{ if(ev.key==="Enter"||ev.key===" "){ ev.preventDefault(); open(); } });
+  return a;
+}
+function metaLine(e,readonly){
+  const b=[];
+  if(readonly&&e.ownerName) b.push("<span>"+esc(e.ownerName)+"</span>");
+  if(e.project) b.push("<span class=\"proj\">"+esc(e.project)+"</span>");
+  if(e.place) b.push("<span>"+esc(e.place)+"</span>");
+  if((e.tags||[]).length) b.push("<span>"+esc(e.tags.join(", "))+"</span>");
+  return b.length?"<div class=\"tagline-row\">"+b.join("")+"</div>":"";
+}
+
+/* ---------------- detail ---------------- */
+async function openEntry(e,readonly){
+  $("sheetTitle").textContent="Entry "+(e.seq||"?")+", "+fmtDay(e.createdAt)+", "+fmtTime(e.createdAt);
+  const body=$("sheetBody"); body.innerHTML="";
+  if(e.voided){
+    const v=document.createElement("div"); v.className="warn";
+    v.textContent="This entry has been voided. Reason: "+(e.voidReason||"not stated")+". It is retained because the record is not erased.";
+    body.appendChild(v);
+  }
+  const n=document.createElement("div");
+  n.innerHTML=e.text?"<p style=\"white-space:pre-wrap;margin:0;overflow-wrap:anywhere\">"+esc(e.text)+"</p>"
+    :"<p style=\"color:var(--faint);font-style:italic;margin:0\">No written note.</p>";
+  body.appendChild(n);
+
+  if(e.calib){
+    const c=e.calib, f=regress(c.pairs,c.weighting,c.origin);
+    const h=document.createElement("h4"); h.textContent="Calibration curve"; body.appendChild(h);
+    const cd=document.createElement("div");
+    cd.innerHTML="<div class=\"mono\" style=\"font-size:13px\">"+esc(c.analyte||"")+(c.method?", "+esc(c.method):"")+
+      (c.medium?", "+esc(c.medium):"")+"</div>"+calibHTML(f,c.xUnit,c.yUnit,false)+
+      "<div class=\"media-cap\">Computed now from the stored raw readings. The readings are what was recorded; every statistic is derived and is recomputed each time this entry is opened.</div>";
+    body.appendChild(cd);
+  }
+
+  if(e.disso){
+    const h=document.createElement("h4"); h.textContent="Dissolution study"; body.appendChild(h);
+    const c=e.disso.cfg, dv=document.createElement("div");
+    dv.innerHTML="<div class=\"mono\" style=\"font-size:13px\">"+esc(c.product||"")+
+      (c.dose?", label claim "+esc(c.dose)+" mg":"")+(c.units?", n = "+esc(c.units):"")+"</div>"+
+      "<div class=\"media-cap\">"+esc([c.apparatus,c.rpm?c.rpm+" rpm":"",c.medium,c.ph?"pH "+c.ph:"",
+        c.temp?c.temp+" \u00B0C":"",c.vol?c.vol+" mL":"",c.withdrawn?c.withdrawn+" mL withdrawn, "+
+        (c.replaced==="no"?"not replaced":"replaced"):"",(c.df&&c.df!=="1")?"dilution factor "+c.df:"",
+        c.detection].filter(Boolean).join("  |  "))+"</div>"+
+      dissoHTML(c,e.disso.points,false);
+    body.appendChild(dv);
+  }
+
+  if((e.media||[]).length){
+    const h=document.createElement("h4"); h.textContent="Attachments"; body.appendChild(h);
+    const wrap=document.createElement("div"); wrap.className="media-full"; body.appendChild(wrap);
+    for(const m of e.media){
+      const cell=document.createElement("div");
+      cell.innerHTML="<div class=\"media-cap mono\">loading "+esc(m.name)+"</div>";
+      wrap.appendChild(cell);
+      try{
+        const snap=await getDoc(doc(db,"media",m.id));
+        if(!snap.exists()){ cell.innerHTML="<div class=\"media-cap\">Attachment missing.</div>"; continue; }
+        cell.innerHTML="";
+        let el;
+        if(m.kind==="photo"){ el=document.createElement("img"); el.alt=m.name; el.src=snap.data().data; }
+        else { el=document.createElement("audio"); el.controls=true; el.src=snap.data().data; }
+        cell.appendChild(el);
+        const cap=document.createElement("div"); cap.className="media-cap mono";
+        let t=m.name+"  "+bytes(m.size)+(m.durationMs?"  "+fmtDur(m.durationMs):"");
+        if(m.exifAt){ t+="  captured "+new Date(m.exifAt).toISOString();
+          const gap=(e.createdAt-m.exifAt)/3600000;
+          if(gap>24) t+="  (recorded "+(gap/24).toFixed(1)+" days after capture)"; }
+        cap.textContent=t; cell.appendChild(cap);
+      }catch(err){ cell.innerHTML="<div class=\"media-cap\">Could not load attachment.</div>"; }
+    }
+  }
+
+  const idn=e.identity||null;
+  const h2=document.createElement("h4"); h2.textContent="Record"; body.appendChild(h2);
+  const loc=e.location;
+  const serverAt=e.serverAt&&e.serverAt.toDate?e.serverAt.toDate().toISOString():"pending upload";
+  let drift="";
+  if(e.serverAt&&e.serverAt.toDate){
+    const g=Math.abs(e.serverAt.toDate().getTime()-e.createdAt)/60000;
+    if(g>10) drift=" (device clock differs by "+g.toFixed(0)+" minutes)";
+  }
+  const rows=[
+    ["Recorded by",esc(e.ownerName||e.ownerEmail||"")],
+    ["Sequence","<span class=\"mono\">"+esc(e.seq||"?")+"</span>"]
+  ];
+  if(idn) rows.push(["Context at the time",
+    esc([idn.enrollmentNo,idn.program,idn.semester,idn.academicYear].filter(Boolean).join(", "))+
+    (idn.guideName?"<br>Guide: "+esc(idn.guideName):"")+
+    (idn.projectTitle?"<br>Project: "+esc(idn.projectTitle):"")]);
+  rows.push(
+    ["Device clock","<span class=\"mono\">"+esc(e.createdAtISO)+"</span>"],
+    ["Server clock","<span class=\"mono\">"+esc(serverAt)+"</span>"+esc(drift)],
+    ["Time zone",esc(e.tz||"not captured")],
+    ["Coordinates",loc?"<span class=\"mono\">"+loc.lat.toFixed(6)+", "+loc.lon.toFixed(6)+"</span>"+
+      (loc.accuracy?" &plusmn;"+Math.round(loc.accuracy)+" m":"")+" <a href=\"https://www.openstreetmap.org/?mlat="+loc.lat+
+      "&mlon="+loc.lon+"#map=17/"+loc.lat+"/"+loc.lon+"\" target=\"_blank\" rel=\"noopener\">map</a>":"not captured"],
+    ["Place",esc(e.place||"not given")],
+    ["Experiment",esc(e.project||"not given")],
+    ["Tags",esc((e.tags||[]).join(", ")||"none")],
+    ["Entry ID","<span class=\"mono\">"+esc(e.id)+"</span>"],
+    ["Previous digest","<span class=\"mono\">"+esc(e.prevHash?e.prevHash.slice(0,24):"first entry")+"</span>"],
+    ["This digest","<span class=\"mono\">"+esc(e.hash?e.hash.slice(0,24):"not computed")+"</span>"],
+    ["Software",esc(e.appVersion||"unknown")],
+    ["Countersigned",e.review?esc(e.review.byName||e.review.by)+" on <span class=\"mono\">"+esc(e.review.at)+"</span>":"not yet reviewed"]
+  );
+  const t=document.createElement("table"); t.className="record";
+  t.innerHTML=rows.map(r=>"<tr><th>"+r[0]+"</th><td>"+r[1]+"</td></tr>").join("");
+  body.appendChild(t);
+
+  const h3=document.createElement("h4"); h3.textContent="Corrections"; body.appendChild(h3);
+  if((e.corrections||[]).length){
+    e.corrections.forEach(a=>{
+      const d=document.createElement("div"); d.className="addendum";
+      d.innerHTML="<span class=\"when mono\">"+esc(a.at)+" by "+esc(a.byName||a.by)+"</span>"+
+        "<span style=\"white-space:pre-wrap\">"+esc(a.text)+"</span>"+
+        "<span class=\"when\">Reason: "+esc(a.reason)+"</span>";
+      body.appendChild(d);
+    });
+  } else {
+    const p=document.createElement("p");
+    p.style.cssText="color:var(--faint);margin:0;font-size:13px"; p.textContent="None. The entry stands as first recorded.";
+    body.appendChild(p);
+  }
+
+  const foot=$("sheetFoot"); foot.innerHTML="";
+  if(e.kind==="calibration"||e.kind==="dissolution")
+    foot.appendChild(btn("Report PDF",()=>entryReport(e, e.identity||myProfile||{})));
+  const mine=e.ownerUid===me.uid;
+  if(mine&&!e.voided){
+    const ta=document.createElement("textarea"); ta.className="add"; ta.id="corBox";
+    ta.placeholder="Correction. State the corrected value or observation.";
+    body.appendChild(ta);
+    const rs=document.createElement("input"); rs.id="corReason"; rs.placeholder="Reason for the correction (required)";
+    rs.style.cssText="width:100%;margin-top:6px;padding:7px 8px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface)";
+    body.appendChild(rs);
+    foot.appendChild(btn("Add correction", async ()=>{
+      const v=$("corBox").value.trim(), r=$("corReason").value.trim();
+      if(!v){ toast("Type the correction first."); return; }
+      if(!r){ toast("A reason is required. This is what makes the correction auditable."); return; }
+      const list=(e.corrections||[]).concat([{at:new Date().toISOString(),by:me.uid,byName:me.displayName||me.email,text:v,reason:r}]);
+      try{ await updateDoc(doc(db,"entries",e.id),{corrections:list}); e.corrections=list;
+        toast("Correction recorded"); openEntry(e,readonly); }
+      catch(err){ toast("Could not record: "+(err.code||"error")); }
+    }));
+    const vd=btn("Void entry", async ()=>{
+      const r=prompt("Voiding keeps the entry visible but marks it as not to be relied on. State the reason:");
+      if(!r||!r.trim()) return;
+      try{ await updateDoc(doc(db,"entries",e.id),{voided:true,voidReason:r.trim()});
+        e.voided=true; e.voidReason=r.trim(); toast("Entry voided"); openEntry(e,readonly); }
+      catch(err){ toast("Could not void: "+(err.code||"error")); }
+    });
+    vd.classList.add("danger"); foot.appendChild(vd);
+  }
+  if(isSup&&!mine&&!e.review){
+    foot.appendChild(btn("Countersign as reviewed", async ()=>{
+      try{ const rev={by:me.uid,byName:me.displayName||me.email,at:new Date().toISOString(),entryHash:e.hash||null};
+        await updateDoc(doc(db,"entries",e.id),{review:rev}); e.review=rev;
+        toast("Countersigned"); openEntry(e,readonly); }
+      catch(err){ toast("Could not countersign: "+(err.code||"error")); }
+    }));
+  }
+  foot.appendChild(btn("Close",closeSheet));
+  $("overlay").classList.add("on");
+}
+function btn(l,fn){ const b=document.createElement("button"); b.type="button"; b.className="chip"; b.textContent=l;
+  b.addEventListener("click",fn); return b; }
+const closeSheet=()=>$("overlay").classList.remove("on");
+$("btnClose").addEventListener("click",closeSheet);
+$("overlay").addEventListener("click",e=>{ if(e.target===e.currentTarget) closeSheet(); });
+addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheet(); });
+
+/* ---------------- tabs ---------------- */
+$("tabLog").addEventListener("click",()=>switchTab("log"));
+$("tabProfile").addEventListener("click",()=>switchTab("profile"));
+$("tabStudents").addEventListener("click",()=>switchTab("students"));
+function switchTab(w){
+  $("tabLog").classList.toggle("on",w==="log");
+  $("tabProfile").classList.toggle("on",w==="profile");
+  $("tabStudents").classList.toggle("on",w==="students");
+  $("viewLog").classList.toggle("hidden",w!=="log");
+  $("viewProfile").classList.toggle("hidden",w!=="profile");
+  $("viewStudents").classList.toggle("hidden",w!=="students");
+}
+
+/* ---------------- supervisor ---------------- */
+let roster=[], selectedUid=null, selectedUser=null;
+function watchRoster(){
+  onSnapshot(collection(db,"users"), snap=>{
+    roster=snap.docs.map(d=>d.data()).filter(u=>u.role!=="supervisor")
+      .sort((a,b)=>(a.fullName||a.name||a.email||"").localeCompare(b.fullName||b.name||b.email||""));
+    paintRoster();
+  }, err=>{ console.error(err); toast("Could not read the roster: "+err.code); });
+}
+function paintRoster(){
+  const tb=$("rosterBody"); tb.innerHTML="";
+  if(!roster.length){ tb.innerHTML="<tr><td colspan=\"4\">No students have signed in yet. Share the link and ask them to sign in once.</td></tr>"; return; }
+  roster.forEach(u=>{
+    const tr=document.createElement("tr");
+    if(u.uid===selectedUid) tr.className="sel";
+    tr.innerHTML="<td>"+esc(u.fullName||u.name||"(no name)")+(u.verified?" <span class=\"pill ok\">verified</span>":"")+"</td>"+
+      "<td class=\"mono\">"+esc(u.enrollmentNo||"-")+"</td><td>"+esc(u.email||"")+"</td>"+
+      "<td class=\"mono\" style=\"text-align:right\" data-count=\""+esc(u.uid)+"\">-</td>";
+    tr.addEventListener("click",()=>loadStudent(u));
+    tb.appendChild(tr); countFor(u.uid);
+  });
+}
+async function countFor(uid){
+  try{
+    const snap=await getDocs(query(collection(db,"entries"),where("ownerUid","==",uid),limit(2000)));
+    const list=snap.docs.map(d=>d.data());
+    const c=document.querySelector("[data-count=\""+uid+"\"]");
+    if(c) c.textContent=list.filter(x=>!x.voided).length;
+  }catch(e){ console.warn(e); }
+}
+async function loadStudent(u){
+  selectedUid=u.uid; selectedUser=u; paintRoster();
+  const panel=$("studentPanel");
+  panel.innerHTML="<p class=\"note\">Loading "+esc(u.fullName||u.name||u.email)+"</p>";
+  try{
+    const snap=await getDocs(query(collection(db,"entries"),where("ownerUid","==",u.uid),limit(2000)));
+    const list=snap.docs.map(d=>d.data()).sort((a,b)=>b.createdAt-a.createdAt);
+    const now=Date.now(), live=list.filter(e=>!e.voided), byP={};
+    live.forEach(e=>{ const k=e.project||"unassigned"; byP[k]=(byP[k]||0)+1; });
+    panel.innerHTML=idCardHTML(u,false)+
+      "<div class=\"stats\">"+stat(live.length,"entries")+
+      stat(live.filter(e=>e.createdAt>now-7*86400000).length,"last 7 days")+
+      stat(live.filter(e=>e.kind==="calibration").length,"calibration curves")+
+      stat(live.filter(e=>e.kind==="dissolution").length,"dissolution profiles")+
+      stat(live.filter(e=>e.review).length,"countersigned")+
+      stat(live.length?fmtShort(Math.max.apply(null,live.map(e=>e.createdAt))):"never","last entry")+"</div>"+
+      "<div class=\"chainbar\" id=\"sChain\"></div>"+
+      (Object.keys(byP).length?"<p class=\"note\">By experiment: "+Object.keys(byP).sort().map(k=>esc(k)+" ("+byP[k]+")").join(", ")+"</p>":"")+
+      "<p style=\"margin-top:10px;display:flex;gap:8px;flex-wrap:wrap\">"+
+        (u.verified?"":"<button class=\"chip\" id=\"sVerify\" type=\"button\">Verify this profile</button>")+
+        "<button class=\"chip\" id=\"sEdit\" type=\"button\">Edit profile</button>"+
+        "<button class=\"chip\" id=\"sPdf\" type=\"button\">Archive as PDF</button></p>"+
+      "<div id=\"sForm\"></div><div id=\"studentTimeline\"></div>";
+    verifyChain(list,$("sChain"));
+    const vb=$("sVerify");
+    if(vb) vb.addEventListener("click", async ()=>{
+      if(!REQUIRED.every(f=>String(u[f]||"").trim())){ toast("The profile is incomplete. Fill the missing fields first."); return; }
+      try{ await updateDoc(doc(db,"users",u.uid),{ verified:true, verifiedBy:me.uid,
+        verifiedByName:me.displayName||me.email, verifiedAt:new Date().toISOString() });
+        u.verified=true; toast("Profile verified and locked"); loadStudent(u); }
+      catch(err){ toast("Could not verify: "+(err.code||"error")); }
+    });
+    $("sEdit").addEventListener("click",()=>{
+      const host=$("sForm"); host.innerHTML="";
+      host.appendChild(profileForm(u,true,true, async (patch,hist)=>{
+        await updateDoc(doc(db,"users",u.uid),Object.assign({},patch,{history:hist}));
+        Object.assign(u,patch); toast("Profile updated"); loadStudent(u);
+      }));
+    });
+    $("sPdf").addEventListener("click",()=>makePDF(list,u));
+    paint($("studentTimeline"),list,list.length,true);
+  }catch(e){ panel.innerHTML="<p class=\"note\">Could not load this student: "+esc(e.code||"error")+"</p>"; }
+}
+
+/* ---------------- PDF archive ---------------- */
+$("btnPdf").addEventListener("click",()=>{
+  if(!entries.length){ toast("Nothing to archive yet."); return; }
+  makePDF(entries, myProfile||{fullName:me.displayName,email:me.email});
+});
+async function makePDF(list, person){
+  if(!window.jspdf){ toast("The PDF library did not load. Check the network and reload."); return; }
+  toast("Building the archive");
+  const { jsPDF }=window.jspdf;
+  const d=new jsPDF({unit:"pt",format:"a4"});
+  const W=d.internal.pageSize.getWidth(), H=d.internal.pageSize.getHeight(), M=46;
+  let y=M;
+  const nl=h=>{ if(y+h>H-M){ d.addPage(); y=M; } };
+  const line=(t,size,style,color)=>{
+    d.setFont("helvetica",style||"normal"); d.setFontSize(size||10);
+    if(color) d.setTextColor.apply(d,color); else d.setTextColor(20,30,39);
+    d.splitTextToSize(String(t),W-2*M).forEach(p=>{ nl(size||10); d.text(p,M,y); y+=(size||10)*1.35; });
+  };
+  const ord=list.slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const live=ord.filter(e=>!e.voided);
+  const first=ord.length?fmtShort(Math.min.apply(null,ord.map(e=>e.createdAt))):"n/a";
+  const lastD=ord.length?fmtShort(Math.max.apply(null,ord.map(e=>e.createdAt))):"n/a";
+
+  /* cover */
+  d.setFont("helvetica","normal"); d.setFontSize(11); d.setTextColor(90,105,118);
+  d.text(INSTITUTE.name, M, y); y+=14;
+  if(INSTITUTE.affiliation){ d.setFontSize(9.5); d.text(INSTITUTE.affiliation, M, y); y+=12; }
+  if(person.department||INSTITUTE.department){ d.setFontSize(9.5); d.text(person.department||INSTITUTE.department, M, y); y+=12; }
+  y+=16;
+  d.setDrawColor(20,96,110); d.setLineWidth(2.5); d.line(M,y,W-M,y); y+=28;
+  d.setTextColor(20,30,39); d.setFont("helvetica","bold"); d.setFontSize(24);
+  d.text("Research Register", M, y); y+=30;
+  d.setFont("helvetica","normal"); d.setFontSize(12); d.setTextColor(90,105,118);
+  d.text("Archive of the digital laboratory record", M, y); y+=30;
+
+  if(person.portrait){
+    try{ d.addImage(person.portrait,"JPEG",W-M-92,y-96,92,115); }catch(e){}
+  }
+  const idRows=[
+    ["Name", person.fullName||person.name||""],
+    ["Enrollment number", person.enrollmentNo||""],
+    ["Program", person.program||""],
+    ["Semester", person.semester||""],
+    ["Academic year", person.academicYear||""],
+    ["Guide", person.guideName||""],
+    ["Project title", person.projectTitle||""],
+    ["Email", person.email||""]
+  ].filter(r=>r[1]);
+  d.setFontSize(10.5);
+  idRows.forEach(r=>{
+    nl(16);
+    d.setTextColor(134,152,165); d.setFont("helvetica","normal"); d.text(r[0], M, y);
+    d.setTextColor(20,30,39); d.setFont("helvetica","bold");
+    d.splitTextToSize(String(r[1]), W-2*M-160).forEach((p,i)=>{ d.text(p, M+150, y+i*13); });
+    y += 13*Math.max(1, d.splitTextToSize(String(r[1]), W-2*M-160).length) + 4;
+  });
+  y+=14;
+  d.setDrawColor(200,212,221); d.setLineWidth(0.7); d.line(M,y,W-M,y); y+=18;
+  d.setFont("helvetica","normal"); d.setFontSize(10); d.setTextColor(20,30,39);
+  [["Entries in this archive", String(ord.length)+(ord.length!==live.length?" ("+(ord.length-live.length)+" voided)":"")],
+   ["Period covered", first+" to "+lastD],
+   ["Calibration curves", String(live.filter(e=>e.kind==="calibration").length)],
+   ["Countersigned entries", String(live.filter(e=>e.review).length)],
+   ["Profile status", person.verified?("verified by "+(person.verifiedByName||"guide")+" on "+(person.verifiedAt||"")):"not verified"],
+   ["Generated", new Date().toISOString()+" by Field Register "+APP_VERSION]
+  ].forEach(r=>{ nl(14); d.setTextColor(134,152,165); d.text(r[0],M,y);
+    d.setTextColor(20,30,39); d.text(String(r[1]),M+150,y); y+=14; });
+
+  y+=20;
+  d.setFontSize(8.5); d.setTextColor(110,125,135);
+  d.splitTextToSize("This document is a printed copy of a digital register. The authoritative record, with its server-written timestamps and its chain of SHA-256 digests, remains in the application. Entries are written once and are never edited or deleted; a mistake appears as a dated correction with a stated reason, and a withdrawn entry appears as voided rather than removed. Each entry also carries a frozen copy of the student's enrollment details as they stood when the entry was written, which is why those details may differ from the cover page above.", W-2*M)
+    .forEach(p=>{ nl(11); d.text(p,M,y); y+=11; });
+
+  y+=34; nl(70);
+  d.setDrawColor(160,178,190); d.setLineWidth(0.7);
+  d.line(M,y,M+190,y); d.line(W-M-190,y,W-M,y); y+=13;
+  d.setFontSize(9); d.setTextColor(110,125,135);
+  d.text("Signature of the student", M, y);
+  d.text("Signature of the guide", W-M-190, y);
+
+  d.addPage(); y=M;
+
+  /* entries */
+  for(const e of ord){
+    nl(60);
+    d.setDrawColor(180,195,205); d.setLineWidth(0.7); d.line(M,y,W-M,y); y+=14;
+    line("Entry "+(e.seq||"?")+"   "+fmtDay(e.createdAt)+"   "+fmtTime(e.createdAt)+(e.voided?"   VOIDED":""),12,"bold");
+    const bits=[];
+    if(e.project) bits.push("Experiment: "+e.project);
+    if(e.place) bits.push("Place: "+e.place);
+    if(e.location) bits.push("Coordinates: "+e.location.lat.toFixed(6)+", "+e.location.lon.toFixed(6)+
+      (e.location.accuracy?" (+/- "+Math.round(e.location.accuracy)+" m)":""));
+    if((e.tags||[]).length) bits.push("Tags: "+e.tags.join(", "));
+    if(bits.length) line(bits.join("    "),8.5,"normal",[110,125,135]);
+    const idn=e.identity;
+    if(idn && (idn.projectTitle!==(person.projectTitle||"") || idn.semester!==(person.semester||"") || idn.guideName!==(person.guideName||"")))
+      line("Context when recorded: "+[idn.semester,idn.academicYear,idn.guideName?"guide "+idn.guideName:"",idn.projectTitle].filter(Boolean).join(", "),8.5,"italic",[138,90,11]);
+    y+=3;
+    if(e.text) line(e.text,10,"normal");
+    if(e.voided) line("Voided. Reason: "+(e.voidReason||"not stated"),9,"italic",[167,42,33]);
+
+    if(e.calib){
+      const c=e.calib, f=regress(c.pairs,c.weighting,c.origin);
+      y+=5;
+      line("Calibration curve: "+(c.analyte||"")+(c.method?", "+c.method:"")+(c.medium?", "+c.medium:""),10,"bold");
+      line("Raw data ("+(c.xUnit||"conc")+" vs "+(c.yUnit||"response")+"): "+
+        c.pairs.map(p=>p.x+" / "+(Array.isArray(p.y)?p.y.filter(Boolean).join(", "):p.y)).join("    "),9,"normal");
+      if(f.ok){
+        line("y = "+sig(f.slope,6)+" x "+(f.intercept<0?"- ":"+ ")+sig(Math.abs(f.intercept),6)+
+          "     r2 = "+sig(f.r2,6)+"     s(y/x) = "+sig(f.syx,4)+"     n = "+f.n,9.5,"normal");
+        line("LOD = "+sig(f.lod,4)+" "+(c.xUnit||"")+"     LOQ = "+sig(f.loq,4)+" "+(c.xUnit||"")+
+          "     weighting: "+c.weighting+"     through origin: "+c.origin,9.5,"normal");
+        line("Back-calculated error by level (percent): "+f.rows.map(r=>isFinite(r.relErr)?r.relErr.toFixed(1):"n/a").join(", "),9,"normal");
+        f.notes.forEach(nz=>line("Note: "+nz,8.5,"italic",[138,90,11]));
+      }
+    }
+
+    if(e.disso){
+      const c=e.disso.cfg, rp=dissoReport(c,e.disso.points);
+      y+=5;
+      line("Dissolution study: "+(c.product||"")+(c.dose?", label claim "+c.dose+" mg":"")+(c.units?", n = "+c.units:""),10,"bold");
+      line([c.apparatus,c.rpm?c.rpm+" rpm":"",c.medium,c.ph?"pH "+c.ph:"",c.temp?c.temp+" C":"",
+        c.vol?c.vol+" mL":"",c.withdrawn?c.withdrawn+" mL withdrawn, "+(c.replaced==="no"?"not replaced":"replaced"):"",
+        (c.df&&c.df!=="1")?"dilution factor "+c.df:"",c.detection].filter(Boolean).join("   "),8.5,"normal",[110,125,135]);
+      if(rp.ok){
+        line("Raw absorbances: "+e.disso.points.map(p=>p.t+" min "+p.a.filter(Boolean).join(" / ")).join("    "),9,"normal");
+        line("Percent released: "+rp.rows.map(r=>r.t+" min "+r.pct.toFixed(2)).join("    "),9.5,"normal");
+        if(rp.rows.some(r=>isFinite(r.ref)))
+          line("Reference profile: "+rp.rows.filter(r=>isFinite(r.ref)).map(r=>r.t+" min "+r.ref.toFixed(2)).join("    "),9,"normal");
+        line("Dissolution efficiency "+sig(rp.kin.de,4)+" percent to "+rp.kin.tLast+" min     mean dissolution time "+sig(rp.kin.mdt,4)+" min",9.5,"normal");
+        rp.kin.models.forEach(m=>line("   "+m.name+"  ("+m.scale+")   r2 = "+(isFinite(m.fit.r2)?m.fit.r2.toFixed(5):"n/a")+
+          "   k = "+(isFinite(m.k)?sig(m.k,5)+" "+(m.ku||""):"n/a")+(m.n!==undefined?"   n = "+m.n.toFixed(4):""),9,"normal"));
+        if(isFinite(rp.sim.f2))
+          line("f1 = "+rp.sim.f1.toFixed(2)+"     f2 = "+rp.sim.f2.toFixed(2)+"     Pearson r = "+rp.sim.pearson.toFixed(4)+
+            "     over "+rp.sim.n+" points",9.5,"normal");
+        rp.notes.forEach(nz=>line("Note: "+nz,8.5,"italic",[138,90,11]));
+      } else {
+        line("The stored dissolution data does not compute a complete profile: "+(rp.notes[0]||""),9,"italic",[167,42,33]);
+      }
+    }
+
+    for(const m of (e.media||[])){
+      if(m.kind!=="photo"){ line("Attachment: voice note, "+bytes(m.size)+(m.durationMs?", "+fmtDur(m.durationMs):"")+" (audio is not reproducible in print)",8.5,"italic",[110,125,135]); continue; }
+      try{
+        const snap=await getDoc(doc(db,"media",m.id));
+        if(!snap.exists()) continue;
+        const dataUrl=snap.data().data, img=await loadImage(dataUrl);
+        const maxW=(W-2*M)*0.62, sc=Math.min(maxW/img.width,1), w=img.width*sc, h=img.height*sc;
+        nl(h+18); y+=6;
+        d.addImage(dataUrl,"JPEG",M,y,w,h); y+=h+4;
+        line(m.name+(m.exifAt?"    camera time "+new Date(m.exifAt).toISOString():""),8,"normal",[110,125,135]);
+      }catch(err){}
+    }
+
+    (e.corrections||[]).forEach(a=>{
+      y+=3;
+      line("Correction "+a.at+" by "+(a.byName||a.by)+": "+a.text,9,"normal",[138,90,11]);
+      line("Reason: "+a.reason,8.5,"italic",[138,90,11]);
+    });
+
+    y+=4;
+    const sv=e.serverAt&&e.serverAt.toDate?e.serverAt.toDate().toISOString():"pending";
+    line("Device "+e.createdAtISO+"    Server "+sv+"    Digest "+(e.hash?e.hash.slice(0,32):"n/a")+
+      "    Previous "+(e.prevHash?e.prevHash.slice(0,16):"first"),7.5,"normal",[134,152,165]);
+    if(e.review) line("Countersigned by "+(e.review.byName||e.review.by)+" on "+e.review.at,8.5,"normal",[27,107,71]);
+    y+=8;
+  }
+
+  const who=person.fullName||person.name||person.email||"register";
+  const pages=d.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    d.setPage(i);
+    d.setDrawColor(210,220,228); d.setLineWidth(0.6); d.line(M, H-40, W-M, H-40);
+    d.setFontSize(7.5); d.setTextColor(134,152,165);
+    d.text(reportNotice(), M, H-28);
+    d.text(who+(person.enrollmentNo?"   "+person.enrollmentNo:""), M, H-18);
+    d.text("Page "+i+" of "+pages, W-M, H-18, { align:"right" });
+  }
+  const safe=String(who).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
+  d.save("research-register-"+safe+"-"+dayKey(Date.now())+".pdf");
+  toast("Archive saved");
+}
+
+if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
