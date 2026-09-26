@@ -256,6 +256,7 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
   <p>A timestamped, tamper-evident research log for supervised project work. Sign in with the Google account your supervisor has on record.</p>
   <div id="setupWarn" class="warn hidden"></div>
   <button class="gsi" id="btnSignIn" type="button">Sign in with Google</button>
+  <button class="icon-btn hidden" id="btnInstallGate" type="button" style="margin-left:10px;padding:9px 16px">Install app</button>
   <p class="fine">Entries are visible only to you and your supervisor. Once saved, an entry cannot be edited or deleted.
   Mistakes are handled by adding a dated correction, in the same way a paper notebook is struck through rather than erased.</p>
 </div>
@@ -272,6 +273,7 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
       </nav>
       <div class="who">
         <span id="meName"></span>
+        <button class="icon-btn hidden" id="btnInstall" type="button">Install app</button>
         <button class="icon-btn" id="btnPdf" type="button">Archive PDF</button>
         <button class="icon-btn" id="btnTheme" type="button">Theme</button>
         <button class="icon-btn" id="btnOut" type="button">Sign out</button>
@@ -454,7 +456,7 @@ const INSTITUTE = {
 const REPORT = { owner: "Prof. Devendra Vaishnav" };
 /* ------------------------------------------------------------------ */
 
-const APP_VERSION = "7.1.0";
+const APP_VERSION = "7.2.0";
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const MAX_PHOTO_BYTES = 260000, MAX_AUDIO_MS = 180000, MAX_MEDIA_DOC_BYTES = 900000;
 const ID_FIELDS = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle","department"];
@@ -2352,6 +2354,34 @@ async function makePDF(list, person){
   d.save("research-register-"+safe+"-"+dayKey(Date.now())+".pdf");
   toast("Archive saved");
 }
+
+/* ---------------- installation ---------------- */
+let deferredPrompt = null;
+function showInstall(on){
+  if(inStandalone()) on = false;
+  ["btnInstall","btnInstallGate"].forEach(id=>{ const el=$(id); if(el) el.classList.toggle("hidden", !on); });
+}
+addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt = e; showInstall(true); });
+addEventListener("appinstalled", ()=>{ deferredPrompt = null; showInstall(false);
+  toast("Installed. Open it from your home screen from now on."); });
+async function doInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    let outcome = "dismissed";
+    try{ outcome = (await deferredPrompt.userChoice).outcome; }catch(e){}
+    deferredPrompt = null; showInstall(false);
+    toast(outcome === "accepted" ? "Installing" : "Installation dismissed");
+    return;
+  }
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const msg = iOS
+    ? "On iPhone, this page must be open in Safari. Tap the Share button, then Add to Home Screen."
+    : "Your browser has not offered installation yet. Reload this page once so the offline worker takes control, then try again, or use the browser menu and choose Install app.";
+  toast(iOS ? "Safari: Share, then Add to Home Screen" : "Reload once, then try again");
+  if(!$("gate").classList.contains("hidden")) authNote(msg, false);
+}
+["btnInstall","btnInstallGate"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("click", doInstall); });
+if(!inStandalone() && /Android|iPad|iPhone|iPod/.test(navigator.userAgent)) showInstall(true);
 
 if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>

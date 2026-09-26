@@ -1,6 +1,6 @@
 # Field Register: setup and operation
 
-Version 5.0.0
+Version 7.2.0
 
 A supervised research log with a write-once record. Students keep an
 academic profile, capture timestamped observations with text, location,
@@ -228,6 +228,14 @@ silently rewrite the history of work done in January. Where an entry's
 frozen context differs from the current profile, the archive prints the
 difference rather than hiding it.
 
+One point about privacy that matters if you keep your own work here.
+Anyone on the supervisor list can read every entry in the register,
+including yours. With a single supervisor address that is not an issue.
+If you add a second faculty member so they can oversee their own students,
+they will also be able to read your entries. Where that is unwanted, run a
+separate Firebase project for your personal register; it costs nothing and
+takes about fifteen minutes to set up.
+
 Entries carry a schema number. Version 2 entries hold no identity
 snapshot and version 3 entries hold no dissolution data, and each is
 hashed in the form that was current when it was written, so older entries
@@ -330,6 +338,60 @@ Every page is numbered and carries the ownership line set at STEP 4. The
 same report can be regenerated at any time from the Report PDF button in
 the entry detail sheet, and the archive PDF now carries the same footer.
 
+## Finding things again
+
+The register is built to be searched rather than scrolled, which matters
+once it holds several projects and a few hundred entries.
+
+Every entry can carry a short title, typed in the field above the main
+text box. It is optional for routine laboratory entries but it is the
+single most useful field for anything you will want to find again, because
+it is shown in bold at the head of the entry in the timeline, it appears in
+the detail heading and in both PDF reports, and it is the first thing the
+search box matches.
+
+The search box matches every word you type, in any order, against the
+entry title, the entry text, the experiment name, the place, the tags, the analyte, the
+dissolution medium and product, the entry type, the project title frozen
+into the entry, and the text and reasons of any corrections. Matches are
+highlighted in the results. Pressing the slash key from anywhere jumps the
+cursor into the search box.
+
+Below the filters sits a bar of the twenty-four most used tags with their
+counts. Selecting several narrows the results to entries carrying all of
+them, so "formulation" plus "failed" finds the failed formulation work and
+nothing else. This is the main reason to tag entries at the time of
+writing rather than intending to organise them later.
+
+The Projects button opens a summary of every experiment or sub-study in
+the register, with the date of the first and last entry, the tags in use,
+the number of starred entries and the total. Selecting a row filters the
+timeline to that experiment. For someone running several projects at once
+this is the fastest route back into a thread of work left a month ago.
+
+Two date boxes beside the filters take an exact range. Setting either one
+overrides the quick range selector, so a single date in the first box shows
+everything from that day onward, and filling both bounds the search to
+those days inclusive. A type selector narrows to observations, calibration
+curves or dissolution studies alone.
+
+Any entry can be starred from its detail sheet, and the Starred button
+filters to those alone. A star is personal organisation rather than part
+of the record: it sits outside the digest, it can be added and removed for
+the life of the entry, and it does not affect the integrity chain. This is
+the intended way to mark project ideas and decisions you will want to find
+again, as distinct from routine experimental entries.
+
+Recording an idea in the register rather than in a notebook file has one
+specific advantage worth understanding. The entry carries a server-written
+timestamp that cannot be altered afterwards, so the register establishes
+when an idea was conceived. That is the evidence that matters if a
+question of priority ever arises. The cost is that an idea, once saved,
+cannot be edited, and its development has to be written as dated
+corrections or as later entries. That is a fair trade for a record of
+conception, but it means the register suits the statement of an idea
+better than the drafting of one.
+
 ## Staying inside the free allowance
 
 Firestore's no-cost tier provides roughly one gigabyte of stored data with
@@ -344,9 +406,22 @@ this is irrelevant for years, but note it before scaling to a full cohort.
 
 ## If something does not work
 
-Sign-in does nothing: the hosting domain is missing from Authorized
-domains, or a popup blocker is active. The app falls back to a redirect on
-the second attempt.
+Sign-in does nothing, or reports auth/internal-error: this is the
+standalone limitation. The popup flow cannot complete inside an installed
+progressive web app, because the popup opens in a separate browser window
+and the app returns to the foreground without waiting. From version 7.1.0
+the app detects standalone mode and uses the redirect flow there instead.
+If it still fails, open the same address in Chrome as an ordinary tab and
+sign in once; an installed app shares its storage with Chrome for the same
+origin, so the installed icon will then open already authenticated.
+
+Sign-in reports auth/unauthorized-domain: the hosting domain is missing
+from Authorized domains under Authentication, Settings.
+
+Sign-in fails immediately with no window opening: check that a support
+email is selected under Authentication, Sign-in method, Google. Enabling
+the provider without one leaves the OAuth client incompletely
+configured.
 
 Entries save but never appear: the rules were not published, or the
 supervisor email in the rules does not match the account you signed in
@@ -370,6 +445,17 @@ writing entries at the same moment and claiming the same sequence number,
 which forks the chain. Ask the student whether they were signed in on two
 devices, and record what you find. Treat a break as a question to
 investigate, never as proof of misconduct.
+
+The Install app option does not appear: Chrome offers a true installation
+only once the service worker is controlling the page, which does not
+happen until the second load. Open the address, wait a few seconds, then
+reload once. Note that Add to Home screen and Install app are different:
+the former makes a plain shortcut that opens in a browser tab, the latter
+creates the standalone application. If the app is already installed,
+Chrome hides the option, so check the app drawer first. From version 7.2.0
+the page carries its own Install app button, which appears on Android and
+iPhone and explains what to do when the browser has not yet offered
+installation.
 
 The PDF button does nothing: the jsPDF library is loaded from a content
 delivery network and needs a network connection on first use.
