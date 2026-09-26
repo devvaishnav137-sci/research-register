@@ -80,6 +80,13 @@ border-radius:0 0 var(--radius) var(--radius);margin-top:18px}
 padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--muted)}
 .kindsel button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 .clock{font-size:11.5px;color:var(--faint)}
+.titlein{width:100%;border:none;border-bottom:1px solid var(--rule);background:transparent;
+padding:10px 16px 8px;font-size:17px;font-weight:600;letter-spacing:-.015em}
+.titlein:focus{outline:none;border-bottom-color:var(--accent)}
+.titlein::placeholder{font-weight:400;color:var(--faint);font-size:15px;letter-spacing:0}
+.etitle{font-size:15.5px;font-weight:600;margin:0 0 4px;letter-spacing:-.012em;line-height:1.3}
+.dateflt{border:1px solid var(--rule-strong);background:var(--surface);border-radius:var(--radius);
+padding:6px 8px;font-size:12.5px;color:var(--muted)}
 .composer textarea{width:100%;border:none;background:transparent;resize:vertical;min-height:84px;padding:10px 16px;font-size:15.5px}
 .composer textarea:focus{outline:none}
 .composer textarea::placeholder{color:var(--faint)}
@@ -145,6 +152,23 @@ border:1px solid var(--rule);border-radius:var(--radius)}
 border-radius:var(--radius);padding:7px 11px;font-size:13.5px}
 .filters select{border:1px solid var(--rule-strong);background:var(--surface);border-radius:var(--radius);padding:7px 9px;font-size:13px}
 .count{font-size:12px;color:var(--faint);margin-left:auto}
+mark{background:var(--accent-soft);color:inherit;padding:0 1px;border-radius:2px}
+.facets{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0;align-items:center}
+.facets .lbl{font-size:11px;color:var(--faint);margin-right:2px}
+.facet{border:1px solid var(--rule-strong);background:var(--surface);border-radius:12px;padding:3px 11px;
+font-size:11.5px;cursor:pointer;color:var(--muted)}
+.facet:hover{border-color:var(--accent);color:var(--accent)}
+.facet.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.facet i{font-style:normal;opacity:.65;margin-left:4px}
+.icon-btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.projtab{width:100%;border-collapse:collapse;font-size:13px;background:var(--surface);
+border:1px solid var(--rule);margin-top:12px}
+.projtab th,.projtab td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--rule)}
+.projtab th{font-size:11.5px;color:var(--faint);font-weight:500}
+.projtab tbody tr{cursor:pointer}
+.projtab tbody tr:hover td{background:var(--surface-2)}
+.projtab .num{text-align:right}
+.starmark{color:var(--warn)}
 .daygroup{margin-top:24px}
 .dayrule{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--rule-strong);padding-bottom:5px}
 .dayrule h3{margin:0;font-size:15px;font-weight:600}
@@ -270,6 +294,7 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
           </div>
           <span class="clock mono" id="clock"></span>
         </div>
+        <input id="ttl" class="titlein" maxlength="140" placeholder="Short title, optional. Searchable and shown in the timeline.">
         <textarea id="txt" placeholder="What did you do and observe? Conditions, quantities, instrument settings, deviations."></textarea>
         <div class="meta-row">
           <div class="field"><label for="proj">Experiment or sub-study</label>
@@ -365,8 +390,17 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
         <select id="fProj"><option value="">All experiments</option></select>
         <select id="fRange"><option value="0">All time</option><option value="1">Today</option>
           <option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="365">Last year</option></select>
+        <select id="fKind"><option value="">All types</option><option value="observation">Observations</option>
+          <option value="calibration">Calibration</option><option value="dissolution">Dissolution</option></select>
+        <input type="date" id="fFrom" class="dateflt" aria-label="From date">
+        <input type="date" id="fTo" class="dateflt" aria-label="To date">
+        <select id="fSort"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
+        <button class="icon-btn" id="fStar" type="button" title="Show only starred entries">Starred</button>
+        <button class="icon-btn" id="btnProjects" type="button">Projects</button>
         <span class="count" id="count"></span>
       </div>
+      <div class="facets" id="tagBar"></div>
+      <div id="projPanel" class="hidden"></div>
       <div id="timeline"></div>
       <p class="note">Video is not uploaded. Record it on your phone, keep the file, and name it in the entry text so it can be matched later.
       A photograph proves an image was submitted at a given time, not that the reading was taken then. Prefer the instrument's own exported report wherever the software can produce one.</p>
@@ -402,11 +436,11 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
    ================================================================== */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBhe7AShSwzt7hQK987QTBWUVBNk4aYr3s",
-  authDomain: "snlpcp-research-register.firebaseapp.com",
-  projectId: "snlpcp-research-register",
-  storageBucket: "snlpcp-research-register.firebasestorage.app",
-  messagingSenderId: "493698340402",
-  appId: "1:493698340402:web:22ad5d0595f51ca71e8e2b"
+authDomain: "snlpcp-research-register.firebaseapp.com",
+projectId: "snlpcp-research-register",
+storageBucket: "snlpcp-research-register.firebasestorage.app",
+messagingSenderId: "493698340402",
+appId: "1:493698340402:web:22ad5d0595f51ca71e8e2b"
 };
 /* STEP 2. Supervisor emails, lower case. Same list must go in firestore.rules. */
 const SUPERVISOR_EMAILS = ["devvaishnav137@gmail.com"];
@@ -417,10 +451,10 @@ const INSTITUTE = {
   department: "Department of Pharmaceutics"
 };
 /* STEP 4. The ownership line printed in the footer of every report. */
-const REPORT = { owner: "Prof. Devendra J. Vaishnav" };
+const REPORT = { owner: "Prof. Devendra Vaishnav" };
 /* ------------------------------------------------------------------ */
 
-const APP_VERSION = "5.0.0";
+const APP_VERSION = "7.0.0";
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const MAX_PHOTO_BYTES = 260000, MAX_AUDIO_MS = 180000, MAX_MEDIA_DOC_BYTES = 900000;
 const ID_FIELDS = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle","department"];
@@ -1440,6 +1474,7 @@ async function entryReport(e, person){
   if(idn.program || idn.semester) kv("Program", [idn.program, idn.semester, idn.academicYear].filter(Boolean).join(", "));
   if(idn.guideName) kv("Guide", idn.guideName);
   if(idn.projectTitle) kv("Project", idn.projectTitle);
+  if(e.title) kv("Title", e.title);
   kv("Entry", "#"+(e.seq||"?")+"   "+fmtDay(e.createdAt)+"   "+fmtTime(e.createdAt));
   const sv = e.serverAt && e.serverAt.toDate ? e.serverAt.toDate().toISOString() : "pending upload";
   kv("Server timestamp", sv);
@@ -1559,6 +1594,7 @@ function canonical(e){
     kind:e.kind, text:e.text, project:e.project, tags:e.tags, place:e.place, location:e.location,
     calib:e.calib||null,
     media:(e.media||[]).map(m=>({id:m.id,kind:m.kind,size:m.size,exifAt:m.exifAt||null})) };
+  if(e.schema===4) return JSON.stringify(Object.assign({schema:4},base,{title:e.title||"",identity:e.identity||null,disso:e.disso||null}));
   if(e.schema===3) return JSON.stringify(Object.assign({schema:3},base,{identity:e.identity||null,disso:e.disso||null}));
   if(e.schema===2) return JSON.stringify(Object.assign({schema:2},base,{identity:e.identity||null}));
   return JSON.stringify(base);
@@ -1590,7 +1626,7 @@ async function save(){
     toast("Complete your profile first. Open the Profile tab.");
     switchTab("profile"); return;
   }
-  const text=$("txt").value.trim();
+  const text=$("txt").value.trim(), ttl=$("ttl").value.trim();
   let calib=null, disso=null;
   if(kind==="dis"){
     const cfg=dissoCfg(), chk=dissoReport(cfg,dpoints);
@@ -1607,14 +1643,14 @@ async function save(){
         .filter(p=>isFinite(num(p.x)) && p.y.some(v=>isFinite(num(v)))),
       computedBy:"field-register "+APP_VERSION };
   }
-  if(!text&&!staged.length&&!calib&&!disso){ toast("Write something, attach a capture, or enter calibration or dissolution data."); $("txt").focus(); return; }
+  if(!text&&!ttl&&!staged.length&&!calib&&!disso){ toast("Write something, attach a capture, or enter calibration or dissolution data."); $("txt").focus(); return; }
   const btn=$("btnSave"); btn.disabled=true; btn.textContent="Saving";
   try{
     const loc=await getFix(), now=Date.now(), id=uid36();
     const settled=entries.filter(e=>!e._pending).sort((a,b)=>(a.seq||0)-(b.seq||0));
     const last=settled[settled.length-1]||null;
     const photo=staged.find(m=>m.kind==="photo");
-    const e={ id, schema:3, ownerUid:me.uid, ownerEmail:(me.email||"").toLowerCase(), ownerName:me.displayName||"",
+    const e={ id, schema:4, ownerUid:me.uid, title:ttl, ownerEmail:(me.email||"").toLowerCase(), ownerName:me.displayName||"",
       identity:identitySnapshot(),
       seq:last?(last.seq||0)+1:1, prevHash:last?(last.hash||null):null,
       kind:kind==="cal"?"calibration":kind==="dis"?"dissolution":"observation",
@@ -1625,7 +1661,7 @@ async function save(){
       location:loc, calib, disso,
       media:staged.map(m=>({id:m.id,kind:m.kind,mime:m.mime,name:m.name,size:m.size,durationMs:m.durationMs||null,exifAt:m.exifAt||null})),
       thumb:photo?photo.thumb:null,
-      corrections:[], voided:false, voidReason:null, review:null,
+      corrections:[], voided:false, voidReason:null, review:null, flags:[],
       appVersion:APP_VERSION, hash:null, serverAt:serverTimestamp() };
     e.hash=await sha256((e.prevHash||"")+canonical(e));
     for(const m of staged){
@@ -1633,7 +1669,7 @@ async function save(){
         name:m.name, size:m.size, durationMs:m.durationMs||null, data:m.dataUrl, serverAt:serverTimestamp() });
     }
     await setDoc(doc(db,"entries",id),e);
-    staged=[]; $("txt").value=""; $("tags").value=""; renderStaged();
+    staged=[]; $("txt").value=""; $("ttl").value=""; $("tags").value=""; renderStaged();
     const wasKind=kind;
     if(kind==="cal"){ pairsR=[{x:"",y:new Array(calRep).fill("")},{x:"",y:new Array(calRep).fill("")},{x:"",y:new Array(calRep).fill("")}]; paintPairs(); setKind("obs"); }
     if(wasKind==="dis"){ dpoints=[{t:"",a:new Array(dVes).fill(""),r:""},{t:"",a:new Array(dVes).fill(""),r:""},{t:"",a:new Array(dVes).fill(""),r:""}]; paintD(); setKind("obs"); }
@@ -1654,24 +1690,121 @@ function renderStats(){
     stat(live.length?fmtShort(Math.max.apply(null,live.map(e=>e.createdAt))):"none","last entry");
 }
 const stat=(v,l)=>"<div class=\"stat\"><b>"+esc(v)+"</b><span>"+esc(l)+"</span></div>";
-["q","fProj","fRange"].forEach(id=>$(id).addEventListener("input",render));
-$("fProj").addEventListener("change",render); $("fRange").addEventListener("change",render);
-function filtered(list){
-  const q=$("q").value.trim().toLowerCase(), p=$("fProj").value, days=parseInt($("fRange").value,10);
-  const cut=days?Date.now()-days*86400000:0;
-  return list.filter(e=>{
-    if(p&&e.project!==p) return false;
-    if(cut&&e.createdAt<cut) return false;
-    if(!q) return true;
-    return [e.text,e.project,e.place,(e.tags||[]).join(" "),(e.calib&&e.calib.analyte)||"",
-      (e.disso&&e.disso.cfg&&e.disso.cfg.product)||"",(e.disso&&e.disso.cfg&&e.disso.cfg.medium)||"",
-      (e.corrections||[]).map(a=>a.text).join(" ")].join(" ").toLowerCase().indexOf(q)>-1;
-  }).sort((a,b)=>b.createdAt-a.createdAt);
+["q","fProj","fRange","fFrom","fTo","fKind"].forEach(id=>$(id).addEventListener("input",render));
+["fProj","fRange","fFrom","fTo","fKind"].forEach(id=>$(id).addEventListener("change",render));
+let activeTags=new Set(), starOnly=false, hlTerms=[];
+const starred = e => (e.flags||[]).indexOf("star")>-1;
+
+function haystack(e){
+  return [e.title, e.text, e.project, e.place, (e.tags||[]).join(" "),
+    (e.identity&&e.identity.projectTitle)||"", (e.identity&&e.identity.guideName)||"",
+    (e.calib&&e.calib.analyte)||"", (e.calib&&e.calib.method)||"", (e.calib&&e.calib.medium)||"",
+    (e.disso&&e.disso.cfg&&e.disso.cfg.product)||"", (e.disso&&e.disso.cfg&&e.disso.cfg.medium)||"",
+    (e.disso&&e.disso.cfg&&e.disso.cfg.detection)||"", e.kind,
+    (e.corrections||[]).map(a=>a.text+" "+a.reason).join(" ")].join(" \n ").toLowerCase();
 }
+function terms(){
+  return $("q").value.trim().toLowerCase().split(/\s+/).filter(t=>t.length>0);
+}
+const rxEsc = t => t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+function hl(str){
+  const safe = esc(str==null?"":str);
+  if(!hlTerms.length) return safe;
+  try{
+    return safe.replace(new RegExp("("+hlTerms.map(rxEsc).join("|")+")","gi"), "<mark>$1</mark>");
+  }catch(e){ return safe; }
+}
+function filtered(list){
+  const tms = terms(), p = $("fProj").value, days = parseInt($("fRange").value,10);
+  const cut = days ? Date.now()-days*86400000 : 0;
+  const kd = $("fKind").value;
+  const fv = $("fFrom").value, tv = $("fTo").value;
+  const from = fv ? new Date(fv+"T00:00:00").getTime() : 0;
+  const to = tv ? new Date(tv+"T00:00:00").getTime()+86400000 : 0;
+  hlTerms = tms;
+  const out = list.filter(e=>{
+    if(p && e.project!==p) return false;
+    if(kd && (e.kind||"observation")!==kd) return false;
+    if(from && e.createdAt<from) return false;
+    if(to && e.createdAt>=to) return false;
+    if(!from && !to && cut && e.createdAt<cut) return false;
+    if(starOnly && !starred(e)) return false;
+    if(activeTags.size){
+      const tg = (e.tags||[]).map(t=>t.toLowerCase());
+      for(const t of activeTags) if(tg.indexOf(t)===-1) return false;
+    }
+    if(!tms.length) return true;
+    const hay = haystack(e);
+    return tms.every(t=>hay.indexOf(t)>-1);
+  });
+  const dir = $("fSort").value==="old" ? 1 : -1;
+  return out.sort((a,b)=>dir*(a.createdAt-b.createdAt));
+}
+
+function renderTagBar(){
+  const counts = {};
+  entries.filter(e=>!e.voided).forEach(e=>(e.tags||[]).forEach(t=>{
+    const k = t.toLowerCase(); counts[k] = (counts[k]||0)+1; }));
+  const keys = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b)).slice(0,24);
+  const bar = $("tagBar");
+  if(!keys.length && !activeTags.size){ bar.innerHTML=""; return; }
+  bar.innerHTML = "<span class=\"lbl\">Tags</span>" +
+    keys.map(k=>"<button class=\"facet"+(activeTags.has(k)?" on":"")+"\" data-tag=\""+esc(k)+
+      "\" type=\"button\">"+esc(k)+"<i>"+counts[k]+"</i></button>").join("") +
+    (activeTags.size?"<button class=\"facet\" data-tag=\"__clear\" type=\"button\">clear</button>":"");
+  bar.querySelectorAll("[data-tag]").forEach(b=>b.addEventListener("click",()=>{
+    const t = b.getAttribute("data-tag");
+    if(t==="__clear") activeTags.clear();
+    else if(activeTags.has(t)) activeTags.delete(t);
+    else activeTags.add(t);
+    render();
+  }));
+}
+function renderProjects(){
+  const map = {};
+  entries.filter(e=>!e.voided).forEach(e=>{
+    const k = e.project || "(no experiment named)";
+    const m = map[k] = map[k] || { n:0, last:0, first:Infinity, star:0, tags:{} };
+    m.n++; m.last = Math.max(m.last,e.createdAt); m.first = Math.min(m.first,e.createdAt);
+    if(starred(e)) m.star++;
+    (e.tags||[]).forEach(t=>{ m.tags[t.toLowerCase()] = 1; });
+  });
+  const keys = Object.keys(map).sort((a,b)=>map[b].last-map[a].last);
+  const host = $("projPanel");
+  if(!keys.length){ host.innerHTML = "<p class=\"note\">Nothing to group yet. The experiment or sub-study field is what builds this list.</p>"; return; }
+  host.innerHTML = "<table class=\"projtab\"><thead><tr><th>Experiment or sub-study</th><th>First</th><th>Last</th>"+
+    "<th>Tags</th><th class=\"num\">Starred</th><th class=\"num\">Entries</th></tr></thead><tbody>"+
+    keys.map(k=>"<tr data-proj=\""+esc(k)+"\"><td>"+esc(k)+"</td><td class=\"mono\">"+fmtShort(map[k].first)+
+      "</td><td class=\"mono\">"+fmtShort(map[k].last)+"</td><td style=\"font-size:11.5px;color:var(--muted)\">"+
+      esc(Object.keys(map[k].tags).sort().slice(0,6).join(", "))+"</td><td class=\"num mono\">"+
+      (map[k].star||"")+"</td><td class=\"num mono\">"+map[k].n+"</td></tr>").join("")+
+    "</tbody></table><p class=\"note\">Select a row to filter the timeline to that experiment.</p>";
+  host.querySelectorAll("[data-proj]").forEach(tr=>tr.addEventListener("click",()=>{
+    const v = tr.getAttribute("data-proj");
+    $("fProj").value = (v==="(no experiment named)") ? "" : v;
+    host.classList.add("hidden"); $("btnProjects").classList.remove("on");
+    render(); $("timeline").scrollIntoView({behavior:"smooth", block:"start"});
+  }));
+}
+$("fStar").addEventListener("click",function(){ starOnly=!starOnly; this.classList.toggle("on",starOnly); render(); });
+$("fSort").addEventListener("change",render);
+$("btnProjects").addEventListener("click",function(){
+  const hid = $("projPanel").classList.toggle("hidden");
+  this.classList.toggle("on", !hid);
+  if(!hid) renderProjects();
+});
+addEventListener("keydown",e=>{
+  if(e.key==="/" && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||""))){
+    e.preventDefault(); $("q").focus();
+  }
+});
 function render(){
   const list=filtered(entries);
-  $("count").textContent=list.length+(list.length===1?" entry":" entries")+(entries.length!==list.length?" of "+entries.length:"");
+  $("count").textContent=list.length+(list.length===1?" entry":" entries")+(entries.length!==list.length?" of "+entries.length:"")+
+    (starOnly||activeTags.size?" filtered":"");
   paint($("timeline"),list,entries.length,false);
+  renderTagBar();
+  if(!$("projPanel").classList.contains("hidden")) renderProjects();
   const projs=Array.from(new Set(entries.map(e=>e.project).filter(Boolean))).sort();
   const places=Array.from(new Set(entries.map(e=>e.place).filter(Boolean))).sort();
   const sel=$("fProj"), keep=sel.value;
@@ -1719,10 +1852,12 @@ function row(e,readonly){
       "<span class=\"geo mono\">"+esc(geo)+"</span>"+
       (e.kind==="calibration"?"<span class=\"tagm cal\">curve</span>":"")+
       (e.kind==="dissolution"?"<span class=\"tagm cal\">dissolution</span>":"")+
+      (starred(e)?"<span class=\"tagm starmark\">starred</span>":"")+
       (e.review?"<span class=\"tagm rev\">reviewed</span>":"")+
       ((e.corrections||[]).length?"<span class=\"tagm cor\">corrected</span>":"")+
       (e.voided?"<span class=\"tagm vd\">voided</span>":"")+"</div>"+
-    "<div class=\"body\">"+(prev?"<p>"+esc(prev)+"</p>":"<p class=\"empty\">No written note.</p>")+cal+
+    "<div class=\"body\">"+(e.title?"<p class=\"etitle\">"+hl(e.title)+"</p>":"")+
+      (prev?"<p>"+hl(prev)+"</p>":(e.title?"":"<p class=\"empty\">No written note.</p>"))+cal+
       ((e.thumb||nA||nP>1)?"<div class=\"thumbs\">"+(e.thumb?"<img alt=\"\" src=\""+e.thumb+"\">":"")+
         (nP>1?"<div class=\"badge\">+"+(nP-1)+" more</div>":"")+(nA?"<div class=\"badge\">Voice note</div>":"")+"</div>":"")+
       metaLine(e,readonly)+"</div>";
@@ -1734,15 +1869,15 @@ function row(e,readonly){
 function metaLine(e,readonly){
   const b=[];
   if(readonly&&e.ownerName) b.push("<span>"+esc(e.ownerName)+"</span>");
-  if(e.project) b.push("<span class=\"proj\">"+esc(e.project)+"</span>");
-  if(e.place) b.push("<span>"+esc(e.place)+"</span>");
-  if((e.tags||[]).length) b.push("<span>"+esc(e.tags.join(", "))+"</span>");
+  if(e.project) b.push("<span class=\"proj\">"+hl(e.project)+"</span>");
+  if(e.place) b.push("<span>"+hl(e.place)+"</span>");
+  if((e.tags||[]).length) b.push("<span>"+hl(e.tags.join(", "))+"</span>");
   return b.length?"<div class=\"tagline-row\">"+b.join("")+"</div>":"";
 }
 
 /* ---------------- detail ---------------- */
 async function openEntry(e,readonly){
-  $("sheetTitle").textContent="Entry "+(e.seq||"?")+", "+fmtDay(e.createdAt)+", "+fmtTime(e.createdAt);
+  $("sheetTitle").textContent=(e.title? e.title+"  \u2014  " : "")+"Entry "+(e.seq||"?")+", "+fmtDay(e.createdAt)+", "+fmtTime(e.createdAt);
   const body=$("sheetBody"); body.innerHTML="";
   if(e.voided){
     const v=document.createElement("div"); v.className="warn";
@@ -1855,6 +1990,14 @@ async function openEntry(e,readonly){
   }
 
   const foot=$("sheetFoot"); foot.innerHTML="";
+  if(e.ownerUid===me.uid)
+    foot.appendChild(btn(starred(e)?"Remove star":"Star this entry", async ()=>{
+      const flags=(e.flags||[]).slice(), i=flags.indexOf("star");
+      if(i>-1) flags.splice(i,1); else flags.push("star");
+      try{ await updateDoc(doc(db,"entries",e.id),{flags:flags}); e.flags=flags;
+        toast(i>-1?"Star removed":"Starred"); openEntry(e,readonly); }
+      catch(err){ toast("Could not update: "+(err.code||"error")); }
+    }));
   if(e.kind==="calibration"||e.kind==="dissolution")
     foot.appendChild(btn("Report PDF",()=>entryReport(e, e.identity||myProfile||{})));
   const mine=e.ownerUid===me.uid;
@@ -2075,6 +2218,7 @@ async function makePDF(list, person){
     nl(60);
     d.setDrawColor(180,195,205); d.setLineWidth(0.7); d.line(M,y,W-M,y); y+=14;
     line("Entry "+(e.seq||"?")+"   "+fmtDay(e.createdAt)+"   "+fmtTime(e.createdAt)+(e.voided?"   VOIDED":""),12,"bold");
+    if(e.title) line(e.title,11.5,"bold");
     const bits=[];
     if(e.project) bits.push("Experiment: "+e.project);
     if(e.place) bits.push("Place: "+e.place);
