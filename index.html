@@ -454,7 +454,7 @@ const INSTITUTE = {
 const REPORT = { owner: "Prof. Devendra Vaishnav" };
 /* ------------------------------------------------------------------ */
 
-const APP_VERSION = "7.0.0";
+const APP_VERSION = "7.1.0";
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const MAX_PHOTO_BYTES = 260000, MAX_AUDIO_MS = 180000, MAX_MEDIA_DOC_BYTES = 900000;
 const ID_FIELDS = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle","department"];
@@ -510,11 +510,49 @@ let portraitPending=null;
 /* ---------------- auth ---------------- */
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({prompt:"select_account"});
+/* An installed progressive web app cannot use the popup flow: the popup
+   opens in a separate browser window and the app returns to the foreground
+   without waiting, so sign-in never completes and Firebase reports
+   auth/internal-error. Detect standalone mode and use the redirect flow
+   there, and fall back to redirect on any popup failure rather than only
+   on errors whose code happens to mention popups. */
+function inStandalone(){
+  try{
+    return window.matchMedia("(display-mode: standalone)").matches
+      || window.matchMedia("(display-mode: fullscreen)").matches
+      || window.matchMedia("(display-mode: minimal-ui)").matches
+      || window.navigator.standalone === true;
+  }catch(e){ return false; }
+}
+function authNote(msg, bad){
+  const w = $("setupWarn");
+  if(!w) return;
+  w.classList.remove("hidden");
+  w.style.borderColor = bad ? "var(--rec)" : "var(--rule-strong)";
+  w.style.color = bad ? "var(--rec)" : "var(--muted)";
+  w.textContent = msg;
+}
 $("btnSignIn").addEventListener("click", async ()=>{
-  try{ await signInWithPopup(auth,provider); }
-  catch(e){ if(String(e.code).indexOf("popup")>-1) await signInWithRedirect(auth,provider); else toast("Sign in failed: "+e.code); }
+  const b = $("btnSignIn");
+  b.disabled = true; b.textContent = "Signing in";
+  try{
+    if(inStandalone()){ await signInWithRedirect(auth, provider); return; }
+    await signInWithPopup(auth, provider);
+  }catch(e){
+    console.error("popup sign-in failed", e);
+    try{ await signInWithRedirect(auth, provider); return; }
+    catch(e2){
+      console.error("redirect sign-in failed", e2);
+      authNote("Sign in failed (" + (e2.code || e.code || "unknown") +
+        "). Open this address in Chrome as an ordinary tab, sign in there once, then reopen the installed app.", true);
+    }
+  }finally{ b.disabled = false; b.textContent = "Sign in with Google"; }
 });
-getRedirectResult(auth).catch(()=>{});
+getRedirectResult(auth).catch(e=>{
+  console.error("redirect result failed", e);
+  authNote("Sign in did not complete (" + (e.code || "unknown") +
+    "). Open this address in Chrome as an ordinary tab, sign in there once, then reopen the installed app.", true);
+});
 $("btnOut").addEventListener("click",()=>signOut(auth));
 
 onAuthStateChanged(auth, async user=>{
