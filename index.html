@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --paper:#EEF1F4;--surface:#FFF;--surface-2:#F6F8FA;--ink:#131E27;--muted:#4E606E;--faint:#5E707F;
@@ -275,6 +276,7 @@ padding:9px 16px;border-radius:var(--radius);font-size:13px;opacity:0;pointer-ev
         <span id="meName"></span>
         <button class="icon-btn hidden" id="btnInstall" type="button">Install app</button>
         <button class="icon-btn" id="btnPdf" type="button">Archive PDF</button>
+        <button class="icon-btn" id="btnZip" type="button">Export archive</button>
         <button class="icon-btn" id="btnTheme" type="button">Theme</button>
         <button class="icon-btn" id="btnOut" type="button">Sign out</button>
       </div>
@@ -456,7 +458,7 @@ const INSTITUTE = {
 const REPORT = { owner: "Prof. Devendra Vaishnav" };
 /* ------------------------------------------------------------------ */
 
-const APP_VERSION = "7.2.0";
+const APP_VERSION = "8.0.0";
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const MAX_PHOTO_BYTES = 260000, MAX_AUDIO_MS = 180000, MAX_MEDIA_DOC_BYTES = 900000;
 const ID_FIELDS = ["fullName","enrollmentNo","program","semester","academicYear","guideName","projectTitle","department"];
@@ -2148,7 +2150,8 @@ async function loadStudent(u){
       "<p style=\"margin-top:10px;display:flex;gap:8px;flex-wrap:wrap\">"+
         (u.verified?"":"<button class=\"chip\" id=\"sVerify\" type=\"button\">Verify this profile</button>")+
         "<button class=\"chip\" id=\"sEdit\" type=\"button\">Edit profile</button>"+
-        "<button class=\"chip\" id=\"sPdf\" type=\"button\">Archive as PDF</button></p>"+
+        "<button class=\"chip\" id=\"sPdf\" type=\"button\">Archive as PDF</button>"+
+        "<button class=\"chip\" id=\"sZip\" type=\"button\">Export full archive</button></p>"+
       "<div id=\"sForm\"></div><div id=\"studentTimeline\"></div>";
     verifyChain(list,$("sChain"));
     const vb=$("sVerify");
@@ -2167,6 +2170,7 @@ async function loadStudent(u){
       }));
     });
     $("sPdf").addEventListener("click",()=>makePDF(list,u));
+    $("sZip").addEventListener("click",()=>exportArchive(list,u));
     paint($("studentTimeline"),list,list.length,true);
   }catch(e){ panel.innerHTML="<p class=\"note\">Could not load this student: "+esc(e.code||"error")+"</p>"; }
 }
@@ -2176,7 +2180,11 @@ $("btnPdf").addEventListener("click",()=>{
   if(!entries.length){ toast("Nothing to archive yet."); return; }
   makePDF(entries, myProfile||{fullName:me.displayName,email:me.email});
 });
-async function makePDF(list, person){
+$("btnZip").addEventListener("click",()=>{
+  if(!entries.length){ toast("Nothing to archive yet."); return; }
+  exportArchive(entries, myProfile||{fullName:me.displayName,email:me.email});
+});
+async function makePDF(list, person, asBlob){
   if(!window.jspdf){ toast("The PDF library did not load. Check the network and reload."); return; }
   toast("Building the archive");
   const { jsPDF }=window.jspdf;
@@ -2350,6 +2358,7 @@ async function makePDF(list, person){
     d.text(who+(person.enrollmentNo?"   "+person.enrollmentNo:""), M, H-18);
     d.text("Page "+i+" of "+pages, W-M, H-18, { align:"right" });
   }
+  if(asBlob) return d.output("blob");
   const safe=String(who).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase();
   d.save("research-register-"+safe+"-"+dayKey(Date.now())+".pdf");
   toast("Archive saved");
@@ -2382,6 +2391,291 @@ async function doInstall(){
 }
 ["btnInstall","btnInstallGate"].forEach(id=>{ const el=$(id); if(el) el.addEventListener("click", doInstall); });
 if(!inStandalone() && /Android|iPad|iPhone|iPod/.test(navigator.userAgent)) showInstall(true);
+
+/* ================= complete archive export =================
+   A PDF is a reading copy. For a record that must outlive the student and
+   survive scrutiny, the archive carries the raw data, the original media
+   files, and a standalone verifier that recomputes the digest chain
+   without needing this application or any network access. */
+
+function csvCell(v){
+  if(v == null) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? "\"" + s.replace(/"/g,"\"\"") + "\"" : s;
+}
+function csvRows(rows){
+  return rows.map(r=>r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+}
+function slug(s){
+  return String(s||"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase().slice(0,50) || "item";
+}
+function dataUrlToBytes(u){
+  const i = u.indexOf(","), bin = atob(u.slice(i+1));
+  const arr = new Uint8Array(bin.length);
+  for(let k=0;k<bin.length;k++) arr[k] = bin.charCodeAt(k);
+  return arr;
+}
+function extFor(mime, name){
+  if(/\.[A-Za-z0-9]{2,5}$/.test(name||"")) return "";
+  const m = (mime||"").toLowerCase();
+  if(m.indexOf("jpeg")>-1) return ".jpg";
+  if(m.indexOf("png")>-1) return ".png";
+  if(m.indexOf("webm")>-1) return ".webm";
+  if(m.indexOf("mp4")>-1 || m.indexOf("m4a")>-1) return ".m4a";
+  if(m.indexOf("mpeg")>-1) return ".mp3";
+  return ".bin";
+}
+function isoOf(e){
+  return (e.serverAt && e.serverAt.toDate) ? e.serverAt.toDate().toISOString() : null;
+}
+
+function verifierHTML(){
+  /* Built as a template literal to avoid brittle escaping. The closing
+     script tag is written as <\/script> so that the HTML parser reading
+     this file does not treat it as the end of this module. */
+  const style = "body{font-family:system-ui,Arial,sans-serif;max-width:860px;margin:40px auto;padding:0 18px;line-height:1.55;color:#131E27}"
+    + "h1{font-size:22px;margin:0 0 4px}p.sub{color:#5E707F;margin:0 0 22px;font-size:14px}"
+    + "input[type=file]{margin:14px 0}.ok{color:#1B6B47;font-weight:600}.bad{color:#A72A21;font-weight:600}"
+    + "table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:14px}"
+    + "th,td{border:1px solid #D3DCE3;padding:5px 8px;text-align:left}th{background:#F2F5F7}"
+    + "code{background:#F2F5F7;padding:1px 4px;border-radius:2px}";
+
+  const logic = [
+    'const canonical = ' + canonical.toString() + ';',
+    'async function sha256(s){',
+    '  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));',
+    '  return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0");}).join("");',
+    '}',
+    'function safe(t){ return String(t==null?"":t).replace(/[&<>]/g,function(c){',
+    '  return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }',
+    'document.getElementById("f").addEventListener("change", async function(ev){',
+    '  const file = ev.target.files[0];',
+    '  if(!file) return;',
+    '  const out = document.getElementById("out");',
+    '  out.innerHTML = "<p>Checking...</p>";',
+    '  let data;',
+    '  try { data = JSON.parse(await file.text()); }',
+    '  catch(e){ out.innerHTML = "<p class=\\"bad\\">That file is not valid JSON.</p>"; return; }',
+    '  const list = (data.entries || data).slice().sort(function(a,b){ return (a.seq||0)-(b.seq||0); });',
+    '  let prev = null; const bad = []; let rows = "";',
+    '  for(const e of list){',
+    '    const expect = await sha256((prev||"") + canonical(e));',
+    '    const okHash = e.hash === expect;',
+    '    const okLink = (prev === null) || (e.prevHash === prev);',
+    '    if(!okHash || !okLink) bad.push(e.seq);',
+    '    rows += "<tr><td>" + safe(e.seq) + "</td><td>" + safe(e.createdAtISO) + "</td><td>" + safe(e.serverAtISO)',
+    '      + "</td><td>" + safe(e.title) + "</td><td>"',
+    '      + (okHash ? "<span class=\\"ok\\">match</span>" : "<span class=\\"bad\\">ALTERED</span>")',
+    '      + "</td><td>" + (okLink ? "<span class=\\"ok\\">linked</span>" : "<span class=\\"bad\\">BROKEN</span>")',
+    '      + "</td></tr>";',
+    '    prev = e.hash;',
+    '  }',
+    '  const verdict = bad.length',
+    '    ? "<p class=\\"bad\\">Verification FAILED at entry " + bad.join(", ") + ". The content of those entries does not match the digest recorded with them, or the chain has been broken by removal or reordering.</p>"',
+    '    : "<p class=\\"ok\\">Verification passed. " + list.length + " entries form an unbroken chain. No entry has been altered, removed or reordered since it was recorded.</p>";',
+    '  out.innerHTML = verdict + "<table><tr><th>#</th><th>Device clock</th><th>Server clock</th><th>Title</th><th>Digest</th><th>Chain</th></tr>" + rows + "</table>";',
+    '});'
+  ].join("\n");
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<title>Field Register archive verifier</title>',
+    '<style>' + style + '</style></head><body>',
+    '<h1>Field Register archive verifier</h1>',
+    '<p class="sub">Recomputes the digest chain of an exported register. It runs entirely in your browser, needs no network connection, no account and no software beyond this page. Select the <code>entries.json</code> file from this archive.</p>',
+    '<input type="file" id="f" accept="application/json,.json">',
+    '<div id="out"></div>',
+    '<script>',
+    logic,
+    '<\/script></body></html>'
+  ].join("\n");
+}
+
+function archiveReadme(person, list, nMedia){
+  const ord = list.slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const first = ord.length ? ord[0].createdAtISO : "n/a";
+  const last = ord.length ? ord[ord.length-1].createdAtISO : "n/a";
+  return [
+"FIELD REGISTER, COMPLETE ARCHIVE",
+"",
+"Researcher      : " + (person.fullName || person.name || person.email || ""),
+"Enrollment      : " + (person.enrollmentNo || "not recorded"),
+"Programme       : " + [person.program, person.semester, person.academicYear].filter(Boolean).join(", "),
+"Guide           : " + (person.guideName || "not recorded"),
+"Project         : " + (person.projectTitle || "not recorded"),
+"Institution     : " + INSTITUTE.name,
+"",
+"Entries         : " + ord.length,
+"Attachments     : " + nMedia,
+"First entry     : " + first,
+"Last entry      : " + last,
+"Exported        : " + new Date().toISOString(),
+"Software        : Field Register " + APP_VERSION,
+"",
+"CONTENTS",
+"",
+"  entries.json        Every entry in full, exactly as stored, including",
+"                      the raw calibration and dissolution readings, the",
+"                      identity snapshot frozen into each entry, both the",
+"                      device and the server timestamps, the corrections",
+"                      with their stated reasons, and the digest chain.",
+"                      This is the authoritative file in this archive.",
+"  entries.csv         A flattened summary for spreadsheet use. Derived",
+"                      from entries.json and lossy; do not rely on it.",
+"  calibration/*.csv   Raw concentration and response readings, one file",
+"                      per calibration entry.",
+"  dissolution/*.csv   Raw time and per-vessel absorbance readings, one",
+"                      file per dissolution entry.",
+"  media/              The original photographs and voice notes as files.",
+"  register.pdf        The human-readable archive with cover page.",
+"  verify.html         A standalone verifier. Open it in any browser and",
+"                      select entries.json. It recomputes the digest chain",
+"                      offline and reports whether anything has changed.",
+"",
+"HOW THE INTEGRITY CHECK WORKS",
+"",
+"Each entry carries a SHA-256 digest computed over a canonical form of its",
+"own content together with the digest of the preceding entry. Altering any",
+"entry changes its digest; removing or reordering entries breaks every",
+"link after that point. verify.html carries the same canonical form used",
+"when the digests were written, so it can recompute them without this",
+"application and without a network connection.",
+"",
+"WHAT THIS ARCHIVE DOES AND DOES NOT ESTABLISH",
+"",
+"Each entry records two timestamps. createdAtISO is the clock of the",
+"device that wrote it and can be wrong. serverAt was written by Google's",
+"servers at the moment the entry was accepted, and the database rules",
+"required it to equal the true request time, so it cannot be backdated",
+"from a device. serverAt is the timestamp to rely on for questions of",
+"priority.",
+"",
+"This archive is a copy. It demonstrates internal consistency, which means",
+"nobody has altered the exported file since it was written. It cannot by",
+"itself prove that the original database was never altered by whoever",
+"administers it. For a stronger claim the live database should be",
+"retained, and an independent trusted timestamp obtained over this",
+"archive at the time of export.",
+"",
+"This is not a 21 CFR Part 11 or GLP compliant record."
+  ].join("\n") + "\n";
+}
+
+async function exportArchive(list, person){
+  if(!window.JSZip){ toast("The archive library did not load. Check the network and reload."); return; }
+  const ord = list.slice().sort((a,b)=>(a.seq||0)-(b.seq||0));
+  if(!ord.length){ toast("There is nothing to archive yet."); return; }
+  toast("Building the archive. This may take a minute.");
+  const zip = new window.JSZip();
+  let nMedia = 0;
+
+  const clean = ord.map(e=>{
+    const c = JSON.parse(JSON.stringify(Object.assign({}, e, { serverAt: undefined, _pending: undefined })));
+    delete c.serverAt; delete c._pending; delete c.thumb;
+    c.serverAtISO = isoOf(e);
+    return c;
+  });
+  zip.file("entries.json", JSON.stringify({
+    format: "field-register-archive/1",
+    software: "Field Register " + APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    institution: INSTITUTE,
+    person: {
+      fullName: person.fullName || person.name || "", email: person.email || "",
+      enrollmentNo: person.enrollmentNo || "", program: person.program || "",
+      semester: person.semester || "", academicYear: person.academicYear || "",
+      guideName: person.guideName || "", projectTitle: person.projectTitle || "",
+      verified: !!person.verified, verifiedBy: person.verifiedByName || null, verifiedAt: person.verifiedAt || null
+    },
+    entryCount: ord.length,
+    entries: clean
+  }, null, 2));
+
+  const head = ["seq","entryId","kind","title","createdAtDevice","createdAtServer","timezone",
+    "project","place","tags","latitude","longitude","accuracyMetres","text",
+    "enrollmentNo","program","semester","academicYear","guide","projectTitle",
+    "voided","voidReason","corrections","countersignedBy","countersignedAt",
+    "attachments","digest","previousDigest"];
+  const rows = [head];
+  ord.forEach(e=>{
+    const i = e.identity || {};
+    rows.push([e.seq, e.id, e.kind, e.title||"", e.createdAtISO, isoOf(e)||"", e.tz||"",
+      e.project||"", e.place||"", (e.tags||[]).join("; "),
+      e.location?e.location.lat:"", e.location?e.location.lon:"", e.location&&e.location.accuracy?Math.round(e.location.accuracy):"",
+      e.text||"", i.enrollmentNo||"", i.program||"", i.semester||"", i.academicYear||"", i.guideName||"", i.projectTitle||"",
+      e.voided?"yes":"no", e.voidReason||"",
+      (e.corrections||[]).map(a=>a.at+" | "+a.text+" | reason: "+a.reason).join("  ///  "),
+      e.review?(e.review.byName||e.review.by):"", e.review?e.review.at:"",
+      (e.media||[]).map(m=>m.name).join("; "), e.hash||"", e.prevHash||""]);
+  });
+  zip.file("entries.csv", csvRows(rows));
+
+  ord.forEach(e=>{
+    if(e.calib){
+      const c = e.calib, f = regress(c.pairs, c.weighting, c.origin);
+      const r = [["analyte",c.analyte||""],["method",c.method||""],["medium",c.medium||""],
+        ["concentration unit",c.xUnit||""],["response unit",c.yUnit||""],
+        ["weighting",c.weighting],["through origin",c.origin],[],["concentration","readings..."]];
+      (c.pairs||[]).forEach(p=>{
+        const ys = Array.isArray(p.y) ? p.y : [p.y];
+        r.push([p.x].concat(ys));
+      });
+      if(f.ok){
+        r.push([], ["slope",f.slope], ["intercept",f.intercept], ["r squared",f.r2],
+          ["residual standard deviation",f.syx], ["LOD",f.lod], ["LOQ",f.loq],
+          ["levels",f.n], ["individual readings",f.nObs]);
+      }
+      zip.file("calibration/"+String(e.seq).padStart(4,"0")+"-"+slug(c.analyte||"curve")+".csv", csvRows(r));
+    }
+    if(e.disso){
+      const c = e.disso.cfg, rp = dissoReport(c, e.disso.points);
+      const r = [["product",c.product||""],["label claim mg",c.dose||""],["units",c.units||""],
+        ["apparatus",c.apparatus||""],["rpm",c.rpm||""],["medium",c.medium||""],["pH",c.ph||""],
+        ["temperature C",c.temp||""],["bath volume mL",c.vol||""],["withdrawn mL",c.withdrawn||""],
+        ["replaced",c.replaced],["dilution factor",c.df||""],["detection",c.detection||""],
+        ["calibration slope",c.slope||""],["calibration intercept",c.intercept||""],[],
+        ["time min","vessel absorbances...","","","reference percent"]];
+      (e.disso.points||[]).forEach(p=>{ r.push([p.t].concat(p.a||[]).concat([p.r||""])); });
+      if(rp.ok){
+        r.push([], ["time min","mean percent released","SD","CV percent","reference percent"]);
+        rp.rows.forEach(x=>r.push([x.t, x.pct, isFinite(x.sd)?x.sd:"", isFinite(x.cv)?x.cv:"", isFinite(x.ref)?x.ref:""]));
+        r.push([], ["model","transformed fit","r squared","rate constant","exponent n"]);
+        rp.kin.models.forEach(m=>r.push([m.name, m.scale, m.fit.r2, m.k, m.n!==undefined?m.n:""]));
+        r.push([], ["dissolution efficiency percent", rp.kin.de], ["mean dissolution time min", rp.kin.mdt]);
+        if(isFinite(rp.sim.f2)) r.push(["f1", rp.sim.f1], ["f2", rp.sim.f2], ["Pearson r", rp.sim.pearson]);
+      }
+      zip.file("dissolution/"+String(e.seq).padStart(4,"0")+"-"+slug(c.product||"profile")+".csv", csvRows(r));
+    }
+  });
+
+  for(const e of ord){
+    for(const m of (e.media||[])){
+      try{
+        const snap = await getDoc(doc(db,"media",m.id));
+        if(!snap.exists()) continue;
+        const bytes = dataUrlToBytes(snap.data().data);
+        zip.file("media/"+String(e.seq).padStart(4,"0")+"/"+slug(m.name)+extFor(m.mime,m.name), bytes);
+        nMedia++;
+      }catch(err){ console.warn("media skipped", m.id, err); }
+    }
+  }
+
+  try{
+    const pdf = await makePDF(ord, person, true);
+    if(pdf) zip.file("register.pdf", pdf);
+  }catch(err){ console.warn("pdf skipped", err); }
+
+  zip.file("verify.html", verifierHTML());
+  zip.file("README.txt", archiveReadme(person, ord, nMedia));
+
+  const blob = await zip.generateAsync({ type:"blob", compression:"DEFLATE" });
+  const url = URL.createObjectURL(blob);
+  saveBlobURL(url, "field-register-archive-" + slug(person.fullName||person.name||person.email) + "-" + dayKey(Date.now()) + ".zip");
+  setTimeout(()=>URL.revokeObjectURL(url), 8000);
+  toast("Archive saved: " + ord.length + " entries, " + nMedia + " attachments.");
+}
 
 if("serviceWorker" in navigator) addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>

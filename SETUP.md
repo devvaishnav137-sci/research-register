@@ -1,6 +1,6 @@
 # Field Register: setup and operation
 
-Version 7.2.0
+Version 8.0.0
 
 A supervised research log with a write-once record. Students keep an
 academic profile, capture timestamped observations with text, location,
@@ -391,6 +391,47 @@ cannot be edited, and its development has to be written as dated
 corrections or as later entries. That is a fair trade for a record of
 conception, but it means the register suits the statement of an idea
 better than the drafting of one.
+
+## Preserving the record after a student leaves
+
+Export full archive, on the student's page in the Students tab, produces a
+single ZIP file holding everything. This is the file to keep when a
+student completes their degree, and it is the one to reach for if a
+question of priority, authorship or patentability ever arises.
+
+It contains `entries.json`, which is every entry exactly as stored,
+including the raw calibration and dissolution readings, the identity
+details frozen into each entry, both the device and the server timestamps,
+the corrections with their stated reasons, and the digest chain. This is
+the authoritative file. Beside it sits `entries.csv` for spreadsheet use,
+one CSV per calibration and per dissolution study holding the raw
+readings and the computed results, the original photographs and voice
+notes as ordinary files under `media`, and `register.pdf`, the readable
+archive with its cover page.
+
+It also contains `verify.html`. Open that file in any browser, on any
+computer, and select `entries.json`. It recomputes the whole digest chain
+and reports whether any entry has been altered, removed or reordered. It
+carries a copy of the exact digest recipe used when the entries were
+written, it needs no network connection, no account and no software beyond
+a browser, and it will still work years from now when this application and
+its Firebase project are gone. That property is the point of the archive.
+
+Two cautions about what the archive proves. Each entry holds two
+timestamps: the device clock, which can be wrong, and the server clock,
+which the database rules required to equal the true request time and which
+therefore cannot be backdated from a phone. Rely on the server clock. And
+the archive demonstrates that nobody has altered the exported file, not
+that the live database was never altered by whoever administers it. For a
+stronger claim, keep the Firebase project alive rather than relying on the
+export alone, and consider obtaining an independent trusted timestamp over
+the ZIP at the moment of export.
+
+Export the archive at the end of each student's project, before their
+account becomes inactive, and keep it with your project files. Students
+can export their own archive from the button in the header, which is worth
+encouraging, since a student who holds their own copy has less reason to
+want the original altered.
 
 ## Staying inside the free allowance
 
